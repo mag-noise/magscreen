@@ -448,7 +448,7 @@ def main(argv):
     collectors = []
     if len(opts.portX)>0: collectors.append( Collector(tldevice, 'X', opts.portX, time0) )
     if len(opts.portY)>0: collectors.append( Collector(tldevice, 'Y', opts.portY, time0) )
-    if len(opts.portZ)>0: collectors.append( Collector(dldevice, 'Z', opts.portZ, time0) )
+    if len(opts.portZ)>0: collectors.append( Collector(tldevice, 'Z', opts.portZ, time0) )
     
     if len(collectors) == 0:
         perr('No data collection ports specified, successfully did nothing.\n')

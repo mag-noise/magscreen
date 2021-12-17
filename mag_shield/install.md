@@ -7,16 +7,18 @@ The magnetic screening software is written in Python 3.  You'll need a functing 
 * Windows - Install version 3.6 or better from (here)[https://www.python.org/downloads/windows/].
   When doing so make sure that the python install directory is added to the system PATH.
 
-* Linux - Python is almost always preinstalled on Linux.  To check the preinstalled version number
-  issue the command: `python3 --version`.
+* Linux - Python 3 is likely pre-installed on your system.  If not use the system package
+  manager to add python3 and python3-pip.
 
-* MacOS - TBD
+* MacOS - Likely you will use the (Homebrew)[https://brew.sh/] packagae manager to
+  install python.  Detailed instructions are TBD.
 
 ## Install matplotlib
 
 Open a cmd.exe shell and issue the following commands to install matplotlib:
 ```batch
 python3 -m pip install -U pip 
+python3 -m pip install --prefer-binary -U scipy
 python3 -m pip install --prefer-binary -U matplotlib   
 ```
 Not that this installs matplotlib *only* for the current user.  This step will have
@@ -25,17 +27,27 @@ to be repeated for each user that wishes to run the screening program
 On newer versions of Linux (CentOS 8+, Ubuntu 18+) the package manager can be 
 used to install matplotlib:
 ```bash
-dnf install python3-matplotlib  # Fedora, CentOS 8
+dnf install python3-matplotlib     # Fedora, CentOS 8
 apt-get install python3-matplotlib # Debian, Ubuntu
 ```
 
 If there are no pre-made matplotlib packages for your system, you can have PIP 
 install it into your home directory.  
 ```bash
-python3 -m pip install -U pip 
-python3 -m pip install --prefer-binary -U matplotlib
+python3 -m pip install --user -U scipy 
+python3 -m pip install --user -U pip 
+python3 -m pip install --user -U matplotlib
 ```
 As mentioned above, this will require re-running pip for each user account that wishes to run the mag screen ing progam.
+
+
+## Install the TwinLeaf I/O Package
+
+The twinleaf python software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  But premade packages are available via pip:
+
+```bash
+python3 -m pip install --user -U tio
+```
 
 
 ## Installing the Screening Program

@@ -4,12 +4,13 @@
 
 The magnetic screening software is written in Python 3.  You'll need a functing python 3 interpreter.  The most common installation method varies by operating system as detailed below:
 
-	* Windows - Install version 3.6 or better from (here)[https://www.python.org/downloads/windows/].  When doing so make sure that the python install directory
-	is added to the system PATH.
+* Windows - Install version 3.6 or better from (here)[https://www.python.org/downloads/windows/].
+  When doing so make sure that the python install directory is added to the system PATH.
 
-	* Linux - Python is almost always preinstalled on Linux.  To check the preinstalled version number issue the command: `python3 --version`.
+* Linux - Python is almost always preinstalled on Linux.  To check the preinstalled version number
+  issue the command: `python3 --version`.
 
-	* MacOS - TBD
+* MacOS - TBD
 
 ## Install matplotlib
 

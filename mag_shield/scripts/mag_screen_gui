@@ -16,13 +16,13 @@ from scipy import signal
 import time
 import tldevice
 
-from matplotlib.backends.backend_pdf import PdfPages
-from PyPDF2 import PdfFileMerger
-pdf = PdfPages('magnetic_screening_list.pdf')
+#from matplotlib.backends.backend_pdf import PdfPages
+#from PyPDF2 import PdfFileMerger
+#pdf = PdfPages('magnetic_screening_list.pdf')
 
 import csv
 import os, glob
-import pandas as pd
+#import pandas as pd
 
 import tkinter as tk
 
@@ -260,9 +260,14 @@ lbl_object = tk.Label(master=frm_entry, text="OBJECT NAME")
 ent_object.grid(row=0, column=0, sticky="e")
 lbl_object.grid(row=0, column=1, sticky="w")
 
+#vmr1 = tldevice.Device('COM4') #reading the USB port
+#vmr2 = tldevice.Device('COM5') #reading the USB port
+#vmr3 = tldevice.Device('COM6') #reading the USB port
+
 vmr1 = tldevice.Device('COM4') #reading the USB port
 vmr2 = tldevice.Device('COM5') #reading the USB port
 vmr3 = tldevice.Device('COM6') #reading the USB port
+
 
 # Create the conversion Button and result display Label
 btn_convert = tk.Button(

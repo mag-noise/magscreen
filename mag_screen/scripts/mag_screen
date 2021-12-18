@@ -76,13 +76,13 @@ def func(r, m):
 	"""equation of a magnetic field from a dipole moment"""
 	return ((mu_0 * m) / (2*pi * r**3))
 
-def ratio(magnetometer_distance, distance, object_length):
+def ratio(magnetometer_distance, distance):
 	"""
-	Due to the Bx field and Bz field magnetometer being farther away from the object than the By field
-	magnetometer, a ratio is needed to project the 3 B field components to the same place to accurately 
-	measure magntitude and direction
-	"""
-	return ((magnetometer_distance + distance + object_length/2 )**3 / (distance + object_length/2)**3)
+    Due to the Bx field and Bz field magnetometer being farther away from the object than the By field
+    magnetometer, a ratio is needed to project the 3 B field components to the same place to accurately
+    measure magntitude and direction
+    """
+    return ((magnetometer_distance + distance)**3 / (distance)**3)
 
 def rms(x, y, z):
 	"""root mean squared function, eventually used to find magnitude of B"""
@@ -97,39 +97,50 @@ def dipole_moment(object_length, distance, B, angle):
 	"""General formula for finding dipole moment based off vector's magnitude and direction"""
 	return (4*pi*(object_length/2+distance)**3*B) / (mu_0*(2*np.cos(angle)**2 - np.sin(angle)**2))
 
-def fit(length_x, length_y, length_z, x, y, z):
+def fit(x, y, z):
 	'''
-	The main function used to magnetic screen. User will enter size of arbitrary
-	length, width, and height in centimeters, then record the magneitc fields 
-	in nanoTelsa from the object's different orientations at three (3) different distances. The 
-	function finds the magnitude and direction of the object's dipole moment, then 
-	calculates a best fit. Using this best fit, the function calculates the stray field 
-	at one (1) meter away assuming the strongest possible dipole orientation. If the 
-	stray field is too large, the object fails the test. If he stray field is below the 
-	required threshold but is within the top 95%, it passes with caution.    
+	Main magnetic screening function.
+
+	Finds the magnitude and direction of the object's dipole moment, then
+	calculates a best fit.  Using this best fit, the function calculates the 
+	stray field at one (1) meter away assuming the strongest possible dipole
+	orientation. If the stray field is too large, the object fails the test.
+	If he stray field is below the required threshold but is within the top 95%,
+	it passes... with caution.
+
+	Args:
+		x -
+		y - 
+		z - 
+
+	Returns:
+
 	'''    
-	distance = np.array([20, 25, 27])*1e-2 #three distances object is being measured at, converted to meters
-	
-	length_meters = np.array([length_x, length_y, length_z])*1e-2 #converting length of objects to meters
+
+	#three distances object is being measured at, converted to meters
+	distance = np.array([9, 11, 15])*1e-2 
 	
 	#converting the input magnetic fields into Tesla
 	B_Tesla = np.array([
-		x[0,0]*ratio(.01025, distance[0], length_meters[0]), y[0,0], z[0,0]*ratio(.00475, distance[0], length_meters[0]), 
-		x[0,1]*ratio(.01025, distance[0], length_meters[1]), y[0,1], z[0,1]*ratio(.00475, distance[0], length_meters[1]),
-		x[0,2]*ratio(.01025, distance[0], length_meters[2]), y[1,2], z[1,2]*ratio(.00475, distance[0], length_meters[2]),
+		x[0,0]*ratio(.01025, distance[0]), y[0,0], z[0,0]*ratio(.00475, distance[0]), 
+		x[0,1]*ratio(.01025, distance[0]), y[0,1], z[0,1]*ratio(.00475, distance[0]),
+		x[0,2]*ratio(.01025, distance[0]), y[1,2], z[1,2]*ratio(.00475, distance[0]),
 		
-		x[1,0]*ratio(.01025, distance[1], length_meters[0]), y[1,0], z[1,0]*ratio(.00475, distance[1], length_meters[0]),
-		x[1,1]*ratio(.01025, distance[1], length_meters[1]), y[1,1], z[1,1]*ratio(.00475, distance[1], length_meters[1]),
-		x[1,2]*ratio(.01025, distance[1], length_meters[2]), y[1,2], z[1,2]*ratio(.00475, distance[1], length_meters[2]),
+		x[1,0]*ratio(.01025, distance[1]), y[1,0], z[1,0]*ratio(.00475, distance[1]),
+		x[1,1]*ratio(.01025, distance[1]), y[1,1], z[1,1]*ratio(.00475, distance[1]),
+		x[1,2]*ratio(.01025, distance[1]), y[1,2], z[1,2]*ratio(.00475, distance[1]),
 		 
-		x[2,0]*ratio(.01025, distance[2], length_meters[0]), y[2,0], z[2,0]*ratio(.00475, distance[2], length_meters[0]),
-		x[2,1]*ratio(.01025, distance[2], length_meters[1]), y[2,1], z[2,1]*ratio(.00475, distance[2], length_meters[1]),
-		x[2,2]*ratio(.01025, distance[2], length_meters[2]), y[2,2], z[2,2]*ratio(.00475, distance[2], length_meters[2])
+		x[2,0]*ratio(.01025, distance[2]), y[2,0], z[2,0]*ratio(.00475, distance[2]),
+		x[2,1]*ratio(.01025, distance[2]), y[2,1], z[2,1]*ratio(.00475, distance[2]),
+		x[2,2]*ratio(.01025, distance[2]), y[2,2], z[2,2]*ratio(.00475, distance[2])
 	])*1e-9
 	
-	#Organizing vectors of Bx, By, Bz components from 3 different orientations at 3 different distances
-	# Hint: complex index calculations in loop below could be shortened if a 3-D array were used here.
-	#       The axes would be row, column, component, i.e. B_Tesla[row,col,comp]
+	# Organizing vectors of Bx, By, Bz components from 3 different orientations at 3
+	# different distances
+	# Hint: complex index calculations in loop below could be shortened if a 3-D array
+	#       were used here.  The axes would be row, column, component, 
+	#       i.e. B_Tesla[row,col,comp]
+	
 	vector = np.array([
 		np.array([B_Tesla[ 0], B_Tesla[ 1], B_Tesla[ 2]]), 
 		np.array([B_Tesla[ 3], B_Tesla[ 4], B_Tesla[ 5]]), 

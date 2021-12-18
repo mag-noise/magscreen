@@ -13,7 +13,9 @@ The magnetic screening software is written in Python 3.  You'll need a functing 
 * MacOS - Likely you will use the (Homebrew)[https://brew.sh/] packagae manager to
   install python.  Detailed instructions are TBD.
 
-## Install matplotlib
+## Install numpy, scipy & matplotlib
+
+Since numpy is required by scipy, the commands installing scipy below should automatically pick it up as a dependency.
 
 Open a cmd.exe shell and issue the following commands to install matplotlib:
 ```batch
@@ -40,15 +42,13 @@ python3 -m pip install --user -U matplotlib
 ```
 As mentioned above, this will require re-running pip for each user account that wishes to run the mag screen ing progam.
 
-
 ## Install the TwinLeaf I/O Package
 
-The twinleaf python software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  But premade packages are available via pip:
+The twinleaf python software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  But pre-made packages are available via pip:
 
 ```bash
 python3 -m pip install --user -U tio
 ```
-
 
 ## Installing the Screening Program
 

@@ -1,27 +1,37 @@
-# Magnetic Cleanliness Screnning
+# Magnetic Cleanliness Screening
 
 Authors: Cole Doorman, Chris Piker
 
 ## Summary
 
-*short summary of purpose of the software here*
+*fixme: Insert sentence on why the stray field and dipole moment must be know for parts on spacecraft*
 
-The test begins by users placing an object to be magnetically screened on the currently-still plate, then turning the stream of air on to rotate it. The users then input the name of the object into a GUI and hit the 'screen' button. The data will be collected by three Twinleaf VMR magnetometers at three different distances away using Python 3. The object being screened has an arbitrary dipole moment which as rotated, will periodically be positioned at a maxima and minima from the sensor. Over a set time (60 seconds per magnetometer, the magnetometers will measure the sinusoidal x, y, z functions of the magnetic field B from the object. Using Welch's function, we will collapse the sinusoidal field components into a power spectral density, which when taken the square root of, will give us x, y, z scalar values of the magnetic field B. After the data collection ceases, the user will turn off the air rotating the plate.
-
-The Bx, By, Bz data from the three Twinleaf VMRs (9 total points) is then put into a Python 3 function to project a dipole moment and stray field. Using the law of cosines, we can find the angle of the magnetic field and subsequently dipole moment relative to the z-axis. Knowing this angle, we can project these values into their most aggressive orientation (directly parallel with the z-axis), giving us 6 total data points. Each magnetometer projects an aggressive dipole moment and an aggressive magnetic field for its respective distance. These data points are then plot and best-fit to a function 1/distance^3. The best fit taken is the new dipole moment with error being calculated using the SciPy library curve_fit function. Using the calculated best-fit aggressive dipole, we calculate the stray field away at one meters. The function finds 3 things:(1) The best fit dipole moment from the object's data, (2) The stray field in nanoTesla 1 meter away, and (3) an indication the object has passed the test if its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the dipole moment is .0475 < m < .05.
-
-The data from this function should be organized and saved into a .csv file. There should be four columns. (1) Object name, (2) Dipole moment (A\*m^2), (3) Stray field 1 meter away (nT), (4) Pass/Fail/Caution? The best fit graphs for each object need to be organized and saved into a .pdf file.
+Magnetic cleanliness screening is the process of determining the magnetic properties
+of various parts before they are added to instrument and satellite  assemblies.  The
+properties of interest are the stray field and dipole moment.  To determine these
+properties the part in question is rotated in the presence of three, three-axis,
+magnetometers.  Raw field measurements collected are then input into calculations
+detailed below which provide the dipole moment and stray field at 1 meter.
 
 ## Apparatus
 
-The sensors are known to the program as `vmrA`, `vmrB` and `vmrC`.  Arrange these as
-specifed in the image below.
+The following equipment is needed:
 
+1. A cylinder of dry nitrogen.  This will be used to rotate the part
+   without electric motors.
 
-Screening uses the program mag_screen.py.  To install the program and it's prerequists
-see the [installation instructions](install.md).  If you are not able to use the labeled
-USB <-> Differental Serial boxes, then the `/etc/udev/rules.d/99-twinleaf-usb.rules` file
-will need to be updated with the serial number of a new adaptor. 
+2. A turntable with paddles that intercept the escaping air.
+
+3. Three Twinleaf VMR sensors.
+
+4. The three labeled Twinleaf USB to differential serial UARTs 
+
+5. A PC with this software installed.  For installation instructions
+   see the file (doc/install.md)[doc/install.md]
+
+Sensors are arrange around the turntable as depicted below.
+
+![Sensor Setup](doc/mag_screen_apperatus.jpg)
 
 ## Screening Procedure
 
@@ -46,7 +56,9 @@ will need to be updated with the serial number of a new adaptor.
 
 ## Calculations
 
+The data will be collected by three Twinleaf VMR magnetometers at three different distances away using the mag_screen program. The object being screened has an arbitrary dipole moment.  As the object is rotated it's internal field will periodically be positioned at a maxima and minima from each sensor.  Over the course of a few rotations the magnetometers will measure the sinusoidal x, y, z functions of the magnetic field B from the object. Using Welch's method, we will collapse the sinusoidal field components into a power spectral density, which when taken the square root of, will give us x, y, z scalar values of the magnetic field B.
 
+The Bx, By, Bz data from each sensor (now 9 total points) is then put into a Python 3 function to project a dipole moment and stray field.  Using the law of cosines, we can find the angle of the magnetic field and subsequently dipole moment relative to the z-axis. Knowing this angle, we can project these values into their most aggressive orientation (directly parallel with the z-axis), giving us 6 total data points. Each magnetometer projects an aggressive dipole moment and an aggressive magnetic field for its respective distance. These data points are then plot and best-fit to a function 1/distance^3. The best fit taken is the new dipole moment with error being calculated using the SciPy library curve_fit function. Using the calculated best-fit aggressive dipole, we calculate the stray field away at one meters. The function finds 3 things:(1) The best fit dipole moment from the object's data, (2) The stray field in nanoTesla 1 meter away, and (3) an indication the object has passed the test if its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the dipole moment is .0475 < m < .05.
 
 
 ## The mag_shield_testing program
@@ -74,60 +86,9 @@ CSV output function not yet implemented
 PDF plotter function not yet implemented
 ```
 
-Use the help option `-h` to get more info an running the program as it
-currently stands.
-```
-mag_shield_testing.py -h
-```
+## Extra
 
-Current help text follows:
-```
-usage: mag_shield_testing.py [-h] [-r HZ] [-t SEC] [-x PORT] [-y PORT] [-z PORT]
-                             [-n NAME] [-d DIR]
-                             X_DIM Y_DIM Z_DIM
+Original text:
 
-Collect magnetic sensor data from twinleaf sensors for a fixed time period and
-output data and plot files.
 
-positional arguments:
-  X_DIM                 The X dimension of the test object in cm.
-  Y_DIM                 The Y dimension of the test object in cm.
-  Z_DIM                 The Z dimension of the test object in cm.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -r HZ, --rate HZ      The number of data points to collect per sensor, per
-                        second (TODO: UNUSED)
-  -t SEC, --time SEC    The total number of seconds to collect data, defaults to
-                        60.
-  -x PORT, --x-port PORT
-                        The communications port connected to the TwinLeaf Xaxis
-                        magnetic sensor. Defaults to /dev/ttyUSB0 This string is
-                        passed to tldevice.Device. To ignore data from this
-                        sensor given an empty string as the portname (i.e. "").
-  -y PORT, --y-port PORT
-                        The communications port connected to the TwinLeaf Yaxis
-                        magnetic sensor. Defaults to /dev/ttyUSB1 This string is
-                        passed to tldevice.Device. To ignore data from this
-                        sensor given an empty string as the portname (i.e. "").
-  -z PORT, --z-port PORT
-                        The communications port connected to the TwinLeaf Zaxis
-                        magnetic sensor. Defaults to /dev/ttyUSB2 This string is
-                        passed to tldevice.Device. To ignore data from this
-                        sensor given an empty string as the portname (i.e. "").
-  -n NAME, --out-name NAME
-                        By default data and plots are written to mag_test_YYYY-
-                        MM-DD_hh-mm-ss where YYYY-MM-DD is the current date, and
-                        hh-mm-ss is the current time. Both a .csv and .pdf file
-                        are written. Use this parameter to change the base name
-                        of the file. File extensions are added outomatically.
-  -d DIR, --out-dir DIR
-                        Output files to folder/directory DIR instead of the
-                        current location
-
-Author: cole-dorman@uiowa.edu, chris-piker@uiowa.edu
-Source: https://research-git.uiowa.edu/space-physics/tracers/magic/utilities
-```
-
-## Others
-No other programs are currently defined
+The data from this function should be organized and saved into a .csv file. There should be four columns. (1) Object name, (2) Dipole moment (A\*m^2), (3) Stray field 1 meter away (nT), (4) Pass/Fail/Caution? The best fit graphs for each object need to be organized and saved into a .pdf file.

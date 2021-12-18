@@ -1,0 +1,36 @@
+# USB Hotplug script to recognize specific TwinLeaf USB to Serial converters and
+# assign them to well known device names.  This ties physical equipment to 
+# specific program inputs reliably.
+#
+# To gather the environment variable values needed below, plug in *only one" 
+# USB to serial converter and run:
+#
+#  udevadm info /dev/ttyUSB0
+#
+# If for the device is not recognized, load the ftdi kernel module via:
+# 
+#  modprobe /sbin/modprobe ftdi_sio
+#
+# and add a section:
+#
+#   RUN+="/sbin/modprobe ftdi_sio"
+#
+# To each udev rule below.
+#
+# Note that after this file is installed you'll need to run:
+#
+#   udevadm control --reload-rules
+#
+# Or reboot the machine.  (C. Piker 2021-12-18)
+
+SUBSYSTEM=="tty", ENV{ID_MODEL}=="FT230X_Basic_UART", \
+    ENV{ID_VENDOR_ID}=="0403", ENV{ID_MODEL_ID}=="6015", ENV{ID_SERIAL_SHORT}=="DT04H6OF", \
+    SYMLINK+="ttyTwinLeafA"
+
+SUBSYSTEM=="tty", ENV{ID_MODEL}=="FT230X_Basic_UART", \
+    ENV{ID_VENDOR_ID}=="0403", ENV{ID_MODEL_ID}=="6015", ENV{ID_SERIAL_SHORT}=="DT04H6OX", \
+    SYMLINK+="ttyTwinLeafB"
+
+SUBSYSTEM=="tty", ENV{ID_MODEL}=="FT230X_Basic_UART", \
+    ENV{ID_VENDOR_ID}=="0403", ENV{ID_MODEL_ID}=="6015", ENV{ID_SERIAL_SHORT}=="DT04H6NY", \
+    SYMLINK+="ttyTwinLeafC"

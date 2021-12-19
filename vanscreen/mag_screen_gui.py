@@ -27,6 +27,8 @@ import os, glob
 
 import tkinter as tk
 
+from .common import *
+
 #get new B list every time
 #delete log file
 #get csv and pdf save to work

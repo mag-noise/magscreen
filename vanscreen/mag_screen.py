@@ -17,7 +17,7 @@ from scipy.constants import mu_0
 from scipy.optimize import curve_fit
 import scipy.stats as stats
 
-from vanscreen import *
+from .common import *
 
 # Output stuff
 if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):

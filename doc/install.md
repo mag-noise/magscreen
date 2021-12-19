@@ -13,53 +13,61 @@ The magnetic screening software is written in Python 3.  You'll need a functing 
 * MacOS - Likely you will use the (Homebrew)[https://brew.sh/] packagae manager to
   install python.  Detailed instructions are TBD.
 
-## Install numpy, scipy & matplotlib
+## Install Prequisites
 
-Since numpy is required by scipy, the commands installing scipy below should automatically pick it up as a dependency.
+Since you can't count of having administrator access to a computer, the following
+proceedure assumes installation in a non-priviledged user account.  Eliminate the
+argument `--user` to install the software below in a system wide manner.
 
-Open a cmd.exe shell and issue the following commands to install matplotlib:
-```batch
-python3 -m pip install -U pip 
-python3 -m pip install --prefer-binary -U scipy
-python3 -m pip install --prefer-binary -U matplotlib   
-```
-Not that this installs matplotlib *only* for the current user.  This step will have
-to be repeated for each user that wishes to run the screening program
-
-On newer versions of Linux (CentOS 8+, Ubuntu 18+) the package manager can be 
-used to install matplotlib:
+Open a cmd.exe, or bash shell and issue the following commands to install the
+library  packages needed by the magnetic cleanliness screening programs:
 ```bash
-dnf install python3-matplotlib     # Fedora, CentOS 8
-apt-get install python3-matplotlib # Debian, Ubuntu
-```
-
-If there are no pre-made matplotlib packages for your system, you can have PIP 
-install it into your home directory.  
-```bash
-python3 -m pip install --user -U scipy 
 python3 -m pip install --user -U pip 
-python3 -m pip install --user -U matplotlib
+python3 -m pip install --user --prefer-binary -U scipy
+python3 -m pip install --user --prefer-binary -U matplotlib
+python3 -m pip install --user --prefer-binary -U tio
 ```
-As mentioned above, this will require re-running pip for each user account that wishes to run the mag screen ing progam.
+Not that this installs software *only* for the current user.  This step will have
+to be repeated for each user that wishes to run the screening program.  
 
-## Install the TwinLeaf I/O Package
+For reference the twinleaf software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  The Twinleaf sensor software is in package `tio` 
+that we installed above.
 
-The twinleaf python software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  But pre-made packages are available via pip:
+## Installing the Screening Programs
 
+The screening program is a standard python package and may be installed using
+`pip` as well.  Run the following command to download and install the vanscreen
+package.
 ```bash
-python3 -m pip install --user -U tio
-```
-
-## Installing the Screening Program
-
-The screening program contains a standard `setup.py` distutils install file.  
-To install the program first clone the sources from gitlab, then run the setup.py
-file.  This works the same on Windows, Linux or MacOS
-```bash
-git clone https://research-git.uiowa.edu/space-physics/tracers/magic/utilities
+git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen
 # Use your HawkID when prompted
-cd mag_screen
-python3 setup.py install
+pip install vanscreen
+```
+
+### Custom Port Names (optional)
+
+Twinleaf magnetometers are serial devices which are typically connected to the 
+host computer via USB-to-Serial adapters.  After connecting a USB cable to the
+host computer, end-user programs can communicate with the sensors via the standard
+ports COM1, COM2, etc. (Windows) or /dev/ttyUSB0, /dev/ttyUSB1, etc. (Linux).  
+This works well enough, but end-user programs do not know which comm port 
+corresponds to which physical sensor in your apparatus.  On Linux this confusion
+may be eliminated by:
+
+1. Using the converter boxes have been numbered (0 to 3) in permanent marker
+2. Installing the included [99-twinleaf-usb.rules](etc/99-twinleaf-usb.rules) udev file
+
+The `rules` file maps the serial number in each adaptor as follows:
+
+   * Adapter 0 (Serial DT04H6OF) --> /dev/ttyTL0
+   * Adapter 1 (Serial DT04H6OX) --> /dev/ttyTL1
+   * Adapter 2 (Serial DT04H6NY) --> /dev/ttyTL2
+
+To use the rules file:
+
+```bash
+sudo cp vanscreen/99-twinleaf-usb.rules /etc/udev/rules.d
+sudo udevadm control --reload-rules
 ```
 
 ## Test installation

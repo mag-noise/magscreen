@@ -2,6 +2,11 @@
 
 import argparse
 import threading
+import time
+import sys
+import numpy as np
+
+perr = sys.stderr.write  # shorten a long function names
 
 class VertFormatter(argparse.HelpFormatter):
 	"""Allow for manual line breaks in description and epilog blocks of help text.
@@ -22,23 +27,27 @@ class TlCollector(threading.Thread):
 	Gather data from a single serial port and generate a list ofdata values
 	and associated time values
 	"""
-	def __init__(self, tlmodule, axis, port, time0):
+	def __init__(self, tlmodule, sid, port, time0):
 		threading.Thread.__init__(self)
-		self.axis = axis
+		self.sid = sid
 		self.port = port
 		self.time0 = time0
 		self.time = []
 		self.raw_data = []
-		perr('Connecting to %s for %s axis data.\n'%(port, axis))
+		perr('Connecting to %s for sensor %s data.\n'%(port, sid))
 		self.device = tlmodule.Device(port)
 		
 		# Save off the names of the data columns
 		self.columns = self.device._tio.protocol.columns
+		self.go = False      
+
+	def stop(self):
+		self.go = False
 	
 	def run(self):
-		global g_quit, g_collect
-		for row in self.device.data.stream_iter():
-			if g_quit or (not g_collect):
+		self.go = True
+		for row in self.device.data.iter():
+			if not self.go:
 				break
 			self.time.append(time.time() - self.time0)
 			self.raw_data.append(row)
@@ -78,14 +87,19 @@ class Display(threading.Thread):
 	def __init__(self, prefix=""):
 		threading.Thread.__init__(self)
 		self.prefix = prefix
+		self.go = False
+
+	def stop(self):
+		self.go = False
 	
 	def run(self):
 		# Write dot's to screen so folks know the program isn't dead.  For a
 		# fancier display see:
 		# https://github.com/twinleaf/tio-python/blob/master/examples/tio-monitor.py
 		# specifically the update() function.
+		self.go = True
 		num_dots = 0
-		while not g_quit and g_collect:
+		while self.go:
 			if num_dots == 0: perr(self.prefix)
  
 			time.sleep(1) # Sleep for 1 second           

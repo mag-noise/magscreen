@@ -27,7 +27,7 @@ import os, glob
 
 import tkinter as tk
 
-from .common import *
+from vanscreen import *
 
 #get new B list every time
 #delete log file
@@ -107,8 +107,8 @@ def fit(name, x11, y11, z11, x21, y21, z21, x31, y31, z31):
     each matplotlib graph into the folder where the .py script is held.
     The function then merges every .pdf files into one for organization purposes
     '''
-    pdf.savefig()
-    pdf.close()
+    plt.savefig("%s.pdf"%name)
+    plt.close()
    
     m_err = np.sqrt(np.diag(pcov)) #estimated covariance of popt, aka one standard deviation errors on the parameters
 
@@ -134,7 +134,6 @@ def fit(name, x11, y11, z11, x21, y21, z21, x31, y31, z31):
     function will save all of these outputs into a csv file, then combine
     each .csv file into one main .csv file for organizational purposes
     '''
-    
 
     f = open('magnetic_screen_list.csv', 'w', encoding='UTF8', newline='')
 
@@ -178,9 +177,10 @@ def VMR(vmr, name): #Write as COM5, COM1, COM4, etc.
     file = open('log'+str(name)+'.csv','w') #logging data into a csv file, this WONT conflict with .csv files above
     timeout = time.time() + 10 #tells function how long to take data
     #change time to whatever period is supposed to be
-    for row in vmr.data.stream_iter():
+
+    for row in vmr.data.iter():
       rowstring = "\t".join(map(str,row))+"\n"
-      print(rowstring)
+      #print(rowstring)
       file.write(rowstring) #writing data itself into csv
       test = 0
       if test == 5 or time.time() > timeout:
@@ -263,13 +263,25 @@ lbl_object = tk.Label(master=frm_entry, text="OBJECT NAME")
 ent_object.grid(row=0, column=0, sticky="e")
 lbl_object.grid(row=0, column=1, sticky="w")
 
+
+# go down to 10 samples per second so slow python can keep up
+import serial
+xPkt = bytearray(b'data.rate 10\r')
+s = serial.serial_for_url('/dev/ttyTL0', baudrate=115200, timeout=1)
+s.write(xPkt)
+s = serial.serial_for_url('/dev/ttyTL1', baudrate=115200, timeout=1)
+s.write(xPkt)
+s = serial.serial_for_url('/dev/ttyTL2', baudrate=115200, timeout=1)
+s.write(xPkt)
+
+vmr1 = tldevice.Device('/dev/ttyTL0') #reading the USB port
+vmr2 = tldevice.Device('/dev/ttyTL1') #reading the USB port
+vmr3 = tldevice.Device('/dev/ttyTL2') #reading the USB port
+
+
 #vmr1 = tldevice.Device('COM4') #reading the USB port
 #vmr2 = tldevice.Device('COM5') #reading the USB port
 #vmr3 = tldevice.Device('COM6') #reading the USB port
-
-vmr1 = tldevice.Device('COM4') #reading the USB port
-vmr2 = tldevice.Device('COM5') #reading the USB port
-vmr3 = tldevice.Device('COM6') #reading the USB port
 
 
 # Create the conversion Button and result display Label

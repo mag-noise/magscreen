@@ -39,9 +39,22 @@ The screening program is a standard python package and may be installed using
 `pip` as well.  Run the following command to download and install the vanscreen
 package.
 ```bash
-git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen
+git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen  # Get software
 # Use your HawkID when prompted
-pip install vanscreen
+
+pip install vanscreen   # Install software
+
+mag_screen_gui          # Run the program
+```
+If you are working on the source code then you can run the software from the
+source tree with out installation.  Example commands for doing so follow.
+```bash
+git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen   # Get software
+
+cd vanscreen  # Got to source directory
+
+cmd.exe /c "set PYTHONPATH=. && python3 vanscreen/mag_screen_gui.py -h"   # Windows
+env PYTHONPATH=. python3 vanscreen/mag_screen_gui.py -h                   # Linux/MacOS
 ```
 
 ### Custom Port Names (optional)
@@ -49,15 +62,16 @@ pip install vanscreen
 Twinleaf magnetometers are serial devices which are typically connected to the 
 host computer via USB-to-Serial adapters.  After connecting a USB cable to the
 host computer, end-user programs can communicate with the sensors via the standard
-ports COM1, COM2, etc. (Windows) or /dev/ttyUSB0, /dev/ttyUSB1, etc. (Linux).  
-This works well enough, but end-user programs do not know which comm port 
-corresponds to which physical sensor in your apparatus.  On Linux this confusion
-may be eliminated by:
+ports COM1, COM2, etc. (Windows) or /dev/ttyUSB0, /dev/ttyUSB1, etc. (Linux).  This
+works well enough, but end-user programs do not know which comm port corresponds to
+which physical sensor in your apparatus.  On Linux this confusion may be eliminated
+by:
 
-1. Using the converter boxes have been numbered (0 to 3) in permanent marker
-2. Installing the included [99-twinleaf-usb.rules](etc/99-twinleaf-usb.rules) udev file
+1. Using the converter boxes have been numbered (0 to 3) in permanent marker.
 
-The `rules` file maps the serial number in each adaptor as follows:
+2. Installing the included [99-twinleaf-usb.rules](etc/99-twinleaf-usb.rules) udev file.
+
+The `rules` file maps adapter names and serial numbers as follows:
 
    * Adapter 0 (Serial DT04H6OF) --> /dev/ttyTL0
    * Adapter 1 (Serial DT04H6OX) --> /dev/ttyTL1
@@ -72,8 +86,9 @@ sudo udevadm control --reload-rules
 
 ## Test installation
 
-A basic test of the software is to make sure it starts and can print it's help text.  To do this open an new bash or cmd.exe window and run:
+A basic test of the software is to make sure it starts and can print it's help text.  To do this open a new bash or cmd window and run:
 ```bash
 mag_screen -h
 ```
 If this runs and prints the command line help for the program then you are ready to plug in sensors and go on to the next step.
+

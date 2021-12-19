@@ -9,15 +9,16 @@ import signal
 import threading     # Mostly waiting on I/O so simple threads are okay
 import time          # if the data rate needs to go up significantly we
 import datetime      # will need to rewrite using the multiprocess module.
+import serial        # Need to send commands to change data rate
 
 # Math stuff
-import numpy as np   
+import numpy as np
 from scipy.constants import pi
 from scipy.constants import mu_0
 from scipy.optimize import curve_fit
 import scipy.stats as stats
 
-from .common import *
+from vanscreen import *
 
 # Output stuff
 if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):
@@ -27,20 +28,26 @@ if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):
 import matplotlib.pyplot as plt 
 
 # Global variable and signal handler to halt main data collection loop
-g_collect = False
-g_quit    = False
-
-def setQuit(signal, frame):
-	"""Signal handler for CTRL+C from the keyboard"""
-	global g_quit
-	g_quit = True      # Indicates early exit
+g_lCollectors = []
+g_display = None
+g_bSigInt = False
 
 perr = sys.stderr.write  # shorten a long function name
 			
 def setDone():
 	"""Function triggered by a timer alarm that is setup in main()"""
-	global g_collect
-	g_collect = False  # Normal exit, g_quit stays false
+	global g_lCollectors
+	for col in g_lCollectors:
+		col.stop()
+	if g_display != None:
+		g_display.stop()
+
+def setQuit(signal, frame):
+	"""Signal handler for CTRL+C from the keyboard"""
+	global g_bSigInt
+	g_bSigInt = True      # Indicates early exit
+	setDone()
+
 
 # ############################################################################ #
 # Data Processing #
@@ -194,7 +201,7 @@ def fit(x, y, z):
 		print("-> CAUTION")
 
 
-def get_moments(collectors, obj_dims):
+def get_moments(collectors):
 	"""Convert the raw data stream off a TwinLeaf mag sensor set into
 	a dictionary of values that contains information we care about.  Also
 	folds in the object measurements.
@@ -202,26 +209,26 @@ def get_moments(collectors, obj_dims):
 	args:
 		collectors: A list of Collector objects that presumably have
 					collected data from a TwinLeaf sensor. 
-		obj_dims (array 1x3): The test objects dimensions in centimeters
 	"""    
-	data = {'DIMS':obj_dims}
+	#data = {'DIMS':obj_dims}
+	data = {}
 	
 	for collector in collectors:
-		axis = collector.axis
+		sId = collector.sid
 	
-		perr('%s Axis: %d rows collected\n'%(collector.axis, len(collector.raw_data)))
+		perr('Sensor %s: %d rows collected\n'%(sId, len(collector.raw_data)))
 		
 		# Cole: Make calls to fit() and the other function above here.  Then 
 		# Gather all output into a dictionary object and return it, for now
 		# I'm just outputting the raw data.  Feel free to ajdust the output 
 		# data dictionary to have whatever structure you deem suitable.
-		data[axis] = {'T':collector.times(), 'B':collector.mag_vectors()}
+		data[sId] = {'T':collector.times(), 'B':collector.mag_vectors()}
 	
-		T = data[axis]['T']
-		B = data[axis]['B']
+		T = data[sId]['T']
+		B = data[sId]['B']
 	
 		perr('%s Sensor, Row    0: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
-			axis, T[0], B[ 0,0], B[ 0,1], B[ 0,2]
+			sId, T[0], B[ 0,0], B[ 0,1], B[ 0,2]
 		))
 		perr('          Row    1: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
 			T[1], B[1,0], B[1,1], B[1,2]
@@ -269,7 +276,7 @@ def write_pdf(directory, name, data):
 # Data Output #
 # ############################################################################ #
 
-def main(argv):
+def main():
 	"""Program entry point, see argparse setup below or run with -h for overall
 	scope and usage information.
 
@@ -277,7 +284,7 @@ def main(argv):
 		A standard integer success or fail code suitable for return to
 		the calling shell. 0 = success, non-zero = various error conditions
 	"""
-	global g_collect, g_quit
+	global g_lCollectors, g_display, g_sigint
 	
 	psr = argparse.ArgumentParser(formatter_class=VertFormatter)
 	psr.description = '''\
@@ -290,18 +297,18 @@ def main(argv):
 	
 	# By tradition, optional command line parameters are first...
 	psr.add_argument(
-		'-r', '--rate', dest='sample_hz', metavar='HZ', type=float, default=20.0,
-		help='The number of data points to collect per sensor, per second '+\
-		'(TODO: UNUSED)'
+		'-r', '--rate', dest='sample_hz', metavar='HZ', type=int, default=10,
+		help='The number of data points to collect per sensor, per second.  '+\
+		     'Defaults to 10 Hz so that slow python code can keep up.'
 	)
 	
 	psr.add_argument(
-		'-t', '--time', dest='duration', metavar='SEC', type=int, default=60,
-		  help='The total number of seconds to collect data, defaults to 60.'
+		'-t', '--time', dest='duration', metavar='SEC', type=int, default=20,
+		  help='The total number of seconds to collect data, defaults to 20.'
 	)
 		 
-	defs = {'name':('X','Y','Z'), 
-		'short':('-x','-y','-z'), 'long':('--x-port','--y-port','--z-port'),
+	defs = {'name':('0','1','2'), 
+		'short':('-0','-1','-2'), 'long':('--port-0','--port-1','--port-2'),
 		'unix':('/dev/ttyTL0', '/dev/ttyTL1', '/dev/ttyTL2'),
 		'win':('COM0','COM1','COM2')
 	}
@@ -313,21 +320,11 @@ def main(argv):
 		psr.add_argument(
 			defs['short'][i], defs['long'][i], dest='port%s'%defs['name'][i],
 			metavar='PORT', type=str, default=port,
-			help='The communications port connected to the TwinLeaf ' +\
-			defs['name'][i] + 'axis magnetic sensor.  Defaults to ' +\
-			port + ' This string is passed to tldevice.Device.  To '+\
-			'ignore data from this sensor given an empty string as '+\
-			'the portname (i.e. "").'
+			help='The communications port connected to TwinLeaf sensor' +\
+			defs['name'][i] + '.  Defaults to ' + port + ' This string '+\
+			'is passed to tldevice.Device.  To ignore data from this '+\
+			'sensor given an empty string as the portname (i.e. "").'
 		)
-	
-	psr.add_argument(
-		'-n', '--out-name', dest='out_file', metavar='NAME', type=str,
-		default=None, help='By default data and plots are written to '+\
-		'mag_test_YYYY-MM-DD_hh-mm-ss where YYYY-MM-DD is the current date, '+\
-		'and hh-mm-ss is the current time.  Both a .csv and .pdf file are '+\
-		'written.  Use this parameter to change the base name of the file. '+\
-		'File extensions are added outomatically. '
-	)
 	
 	psr.add_argument(
 		'-d', '--out-dir', dest='out_dir', metavar='DIR', type=str,
@@ -336,11 +333,15 @@ def main(argv):
 	)
 	
 	# ... and positional parameters follow
-	psr.add_argument("X_DIM", help="The X dimension of the test object in cm.")
-	psr.add_argument("Y_DIM", help="The Y dimension of the test object in cm.")
-	psr.add_argument("Z_DIM", help="The Z dimension of the test object in cm.")
+	psr.add_argument("NAME", 
+		help="An identifier for the object to be measured.  Will be used as "+\
+		"part of the output filenames."
+	)
+	#psr.add_argument("X_DIM", help="The X dimension of the test object in cm.")
+	#psr.add_argument("Y_DIM", help="The Y dimension of the test object in cm.")
+	#psr.add_argument("Z_DIM", help="The Z dimension of the test object in cm.")
 	
-	opts = psr.parse_args(argv[1:])
+	opts = psr.parse_args()
 	
 	# Delay importing the twin leaf libraries so that help text is available
 	# even if the required python modules are not installed
@@ -360,56 +361,68 @@ def main(argv):
 		perr('Test duration must be between 1 second and 1 hour\n')
 		return 7
 	
+	# Set at X samples per second per sensor, should be no more then
+	# 10 samples per second so that slow python code can keep up
+	if (opts.sample_hz < 1) or (opts.sample_hz >= 200):
+		perr("Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
+		return 14
+
+	xPkt = bytearray(b'data.rate %d\r'%opts.sample_hz)
+	s = serial.serial_for_url(opts.port0, baudrate=115200, timeout=1)
+	s.write(xPkt)
+	s = serial.serial_for_url(opts.port1, baudrate=115200, timeout=1)
+	s.write(xPkt)
+	s = serial.serial_for_url(opts.port2, baudrate=115200, timeout=1)
+	s.write(xPkt)
+
 	time0 = time.time()  # Current unix time in floating point seconds
 	
-	g_collect = True   # Global stop flags
-	g_quit = False
+	g_bSigInt = False    # Global interrupt flag
 	
 	# Create one data collection thread per sensor
-	collectors = []
-	if len(opts.portX)>0: collectors.append( Collector(tldevice, 'X', opts.portX, time0) )
-	if len(opts.portY)>0: collectors.append( Collector(tldevice, 'Y', opts.portY, time0) )
-	if len(opts.portZ)>0: collectors.append( Collector(tldevice, 'Z', opts.portZ, time0) )
+	if len(opts.port0)>0: g_lCollectors.append( TlCollector(tldevice, '0', opts.port0, time0) )
+	if len(opts.port1)>0: g_lCollectors.append( TlCollector(tldevice, '1', opts.port1, time0) )
+	if len(opts.port2)>0: g_lCollectors.append( TlCollector(tldevice, '2', opts.port2, time0) )
 	
-	if len(collectors) == 0:
+	if len(g_lCollectors) == 0:
 		perr('No data collection ports specified, successfully did nothing.\n')
 		return 0
 	
 	# Create a display output thread
 	perr("Use CTRL+C to quit early\n")
-	display = Display("Collecting ~%d seconds of data "%opts.duration)
+	g_display = Display("Collecting ~%d seconds of data "%opts.duration)
 	
 	# create an alarm thread to stop taking data
 	alarm = threading.Timer(opts.duration + (time.time() - time0), setDone)
 	
 	# Start all the threads
-	for collector in collectors:
+	for collector in g_lCollectors:
 		collector.start()
 	alarm.start()
-	display.start()
+	g_display.start()
 	
 	# Wait on all my threads to exit
-	for collector in collectors:
+	for collector in g_lCollectors:
 		if collector:
 			collector.join()
-	display.join()
+	g_display.join()
 	
 	alarm.cancel() # Cancel the alarm if it hasn't gone off
 	perr('\n')
-	if g_quit:
+	if g_bSigInt:
 		perr('Data collection terminated, no output written\n')
 		return 4  # An error return value
 	
 	# Parse raw data from the collectors into meaningful measurments
-	data = get_moments(collectors, [opts.X_DIM, opts.Y_DIM, opts.Z_DIM])
+	data = get_moments(g_lCollectors)
 	
 	# Output what we got
-	write_csv(opts.out_file, opts.out_dir, data)
-	write_pdf(opts.out_file, opts.out_dir, data)
+	write_csv(opts.NAME, opts.out_dir, data)
+	write_pdf(opts.NAME, opts.out_dir, data)
 	
 	return 0  # An all-okay return value
 	
 	
 # Run the main function and give it the command line arguments
 if __name__ == "__main__":
-	sys.exit(main(sys.argv))
+	sys.exit(main())

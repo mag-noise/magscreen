@@ -1,6 +1,6 @@
 # Magnetic Cleanliness Screening
 
-Authors: Cole Doorman, Chris Piker
+Authors: Cole Dorman, Chris Piker
 
 ## Summary
 

@@ -1,5 +1,8 @@
 """Utilities for magnetic screening, mostly using Twinleaf sensors"""
 
+import argparse
+import threading
+
 class VertFormatter(argparse.HelpFormatter):
 	"""Allow for manual line breaks in description and epilog blocks of help text.
 	To insert a line break use the vertical tab (\\v) character into a text block."""
@@ -65,3 +68,30 @@ class TlCollector(threading.Thread):
 		return "%04d-%02d-%02dT%02d:%02d:%02d"%(
 			dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
 		)
+
+
+class Display(threading.Thread):
+	"""This is a simple aliveness printer.  It outputs a single . once a 
+	second to stdout.  You could customize it to do more interesting things
+	if desire.
+	"""
+	def __init__(self, prefix=""):
+		threading.Thread.__init__(self)
+		self.prefix = prefix
+	
+	def run(self):
+		# Write dot's to screen so folks know the program isn't dead.  For a
+		# fancier display see:
+		# https://github.com/twinleaf/tio-python/blob/master/examples/tio-monitor.py
+		# specifically the update() function.
+		num_dots = 0
+		while not g_quit and g_collect:
+			if num_dots == 0: perr(self.prefix)
+ 
+			time.sleep(1) # Sleep for 1 second           
+			if num_dots % 10 == 9:
+				perr('%d'%(num_dots+1))
+			else:
+				perr('.')
+			sys.stderr.flush()
+			num_dots += 1

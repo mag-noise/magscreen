@@ -42,33 +42,6 @@ def setDone():
 	global g_collect
 	g_collect = False  # Normal exit, g_quit stays false
 
-
-class Display(threading.Thread):
-	"""This is a simple aliveness printer.  It outputs a single . once a 
-	second to stdout.  You could customize it to do more interesting things
-	if desire.
-	"""
-	def __init__(self, prefix=""):
-		threading.Thread.__init__(self)
-		self.prefix = prefix
-	
-	def run(self):
-		# Write dot's to screen so folks know the program isn't dead.  For a
-		# fancier display see:
-		# https://github.com/twinleaf/tio-python/blob/master/examples/tio-monitor.py
-		# specifically the update() function.
-		num_dots = 0
-		while not g_quit and g_collect:
-			if num_dots == 0: perr(self.prefix)
- 
-			time.sleep(1) # Sleep for 1 second           
-			if num_dots % 10 == 9:
-				perr('%d'%(num_dots+1))
-			else:
-				perr('.')
-			sys.stderr.flush()
-			num_dots += 1
-
 # ############################################################################ #
 # Data Processing #
 
@@ -78,11 +51,11 @@ def func(r, m):
 
 def ratio(magnetometer_distance, distance):
 	"""
-    Due to the Bx field and Bz field magnetometer being farther away from the object than the By field
-    magnetometer, a ratio is needed to project the 3 B field components to the same place to accurately
-    measure magntitude and direction
-    """
-    return ((magnetometer_distance + distance)**3 / (distance)**3)
+	Due to the Bx field and Bz field magnetometer being farther away from the object than the By field
+	magnetometer, a ratio is needed to project the 3 B field components to the same place to accurately
+	measure magntitude and direction
+	"""
+	return ((magnetometer_distance + distance)**3 / (distance)**3)
 
 def rms(x, y, z):
 	"""root mean squared function, eventually used to find magnitude of B"""
@@ -140,7 +113,7 @@ def fit(x, y, z):
 	# Hint: complex index calculations in loop below could be shortened if a 3-D array
 	#       were used here.  The axes would be row, column, component, 
 	#       i.e. B_Tesla[row,col,comp]
-	
+
 	vector = np.array([
 		np.array([B_Tesla[ 0], B_Tesla[ 1], B_Tesla[ 2]]), 
 		np.array([B_Tesla[ 3], B_Tesla[ 4], B_Tesla[ 5]]), 
@@ -329,7 +302,7 @@ def main(argv):
 		 
 	defs = {'name':('X','Y','Z'), 
 		'short':('-x','-y','-z'), 'long':('--x-port','--y-port','--z-port'),
-		'unix':('/dev/ttyTwinleafA', '/dev/ttyTwinleafB', '/dev/ttyTwinleafB'),
+		'unix':('/dev/ttyTL0', '/dev/ttyTL1', '/dev/ttyTL2'),
 		'win':('COM0','COM1','COM2')
 	}
 	

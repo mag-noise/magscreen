@@ -10,6 +10,9 @@ import threading     # Mostly waiting on I/O so simple threads are okay
 import time          # if the data rate needs to go up significantly we
 import datetime      # will need to rewrite using the multiprocess module.
 import serial        # Need to send commands to change data rate
+import getpass       # Username
+import platform      # Hostname
+from os.path import join as pjoin
 
 # Math stuff
 import numpy as np
@@ -19,6 +22,10 @@ from scipy.optimize import curve_fit
 import scipy.stats as stats
 
 from vanscreen import *
+
+# The version of this software, need to be able to set this via the release
+# process somehow
+g_sVersion = "vanscreen-0.2"
 
 # Output stuff
 if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):
@@ -202,7 +209,7 @@ def fit(x, y, z):
 
 
 def get_moments(collectors):
-	"""Convert the raw data stream off a TwinLeaf mag sensor set into
+	"""Convert the raw data stream off a Twinleaf mag sensor set into
 	a dictionary of values that contains information we care about.  Also
 	folds in the object measurements.
 	
@@ -248,18 +255,20 @@ def get_moments(collectors):
 
 # ############################################################################ #
 # Data Output #
-def write_csv(directory, name, data):
-	"""Write formatted data to a CSV file for later analysis
-	
-	args:
-		directory (str): The directory to write to, if None use current location.
-		name (str): The filename to write, if None generate name based of current
-			timestamp
-		data (dict): The data dictionary as created by get_moments above
-	"""
-	
-	perr('CSV output function not yet implemented\n')
-	
+
+
+def test_properties(sPart, sComments=None):
+	"""Return a dictionary of basic properties for a screening test"""
+	d = {
+		'Part':sPart,
+		'Timestamp': time.strftime('%Y-%m-%dT%H:%M:%S%z'), # Use ISO 8601 local times
+		'User': getpass.getuser(),
+		'Host': platform.node(),
+		'Version':g_sVersion
+	}
+
+	if sComments: d['Note'] = sComments.replace('"',"'")
+	return d	
 
 def write_pdf(directory, name, data):
 	"""Generate plots using matplotlib of formatted data and save to a PDF file
@@ -326,19 +335,24 @@ def main():
 
 		psr.add_argument(
 			"--d%d"%defs['name'][i], dest='dist%s'%defs['name'][i], metavar='CM', 
-			type=str, default=port,
+			type=float, default=defs['dist'][i],
 			help='The distance in cm from the (TBD location) to the front face '+\
 			'of sensor %d'%defs['name'][i] + '.  Defaults to %d cm.\n'%defs['dist'][i]
 		)
 	
 	psr.add_argument(
 		'-d', '--out-dir', dest='out_dir', metavar='DIR', type=str,
-		default=None, help='Output files to folder/directory DIR instead of '+\
+		default='.', help='Output files to folder/directory DIR instead of '+\
 		'the current location'
+	)
+
+	psr.add_argument(
+		'-m', '--message', dest="msg", metavar="NOTE", type=str, default=None,
+		help="Add a message to be included in the output files."
 	)
 	
 	# ... and positional parameters follow
-	psr.add_argument("NAME", 
+	psr.add_argument("PART", 
 		help="An identifier for the object to be measured.  Will be used as "+\
 		"part of the output filenames."
 	)
@@ -383,11 +397,11 @@ def main():
 	
 	# Create one data collection thread per sensor
 	if len(opts.port0) > 0: 
-		g_lCollectors.append( TlCollector(tldevice, '0', opts.port0, opts.dist0, time0) )
+		g_lCollectors.append( VMR(tldevice, '0', opts.port0, opts.dist0, time0) )
 	if len(opts.port1) > 0:
-		g_lCollectors.append( TlCollector(tldevice, '1', opts.port1, opts.dist1, time0) )
+		g_lCollectors.append( VMR(tldevice, '1', opts.port1, opts.dist1, time0) )
 	if len(opts.port2) > 0: 
-		g_lCollectors.append( TlCollector(tldevice, '2', opts.port2, opts.dist2, time0) )
+		g_lCollectors.append( VMR(tldevice, '2', opts.port2, opts.dist2, time0) )
 	
 	if len(g_lCollectors) == 0:
 		perr('No data collection ports specified, successfully did nothing.\n')
@@ -418,12 +432,16 @@ def main():
 		perr('Data collection terminated, no output written\n')
 		return 4  # An error return value
 	
+	# Save raw-data from collectors
+	sFile = pjoin(opts.out_dir, "%s.csv"%safe_filename(opts.PART))
+	sTitle = "Magnetic Screening Test, Raw Data"
+	save_mag_vecs(sFile, g_lCollectors, sTitle, test_properties(opts.PART, opts.msg))
+
 	# Parse raw data from the collectors into meaningful measurments
 	data = get_moments(g_lCollectors)
 	
 	# Output what we got
-	write_csv(opts.NAME, opts.out_dir, data)
-	write_pdf(opts.NAME, opts.out_dir, data)
+	write_pdf(opts.PART, opts.out_dir, data)
 	
 	return 0  # An all-okay return value
 	

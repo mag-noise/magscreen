@@ -286,7 +286,7 @@ def main():
 	"""
 	global g_lCollectors, g_display, g_sigint
 	
-	psr = argparse.ArgumentParser(formatter_class=VertFormatter)
+	psr = argparse.ArgumentParser(formatter_class=CustomFormatter)
 	psr.description = '''\
 		Collect magnetic sensor data from twinleaf sensors for a fixed time
 		period and output data and plot files.'''
@@ -299,16 +299,15 @@ def main():
 	psr.add_argument(
 		'-r', '--rate', dest='sample_hz', metavar='HZ', type=int, default=10,
 		help='The number of data points to collect per sensor, per second.  '+\
-		     'Defaults to 10 Hz so that slow python code can keep up.'
+		     'Defaults to 10 Hz so that slow python code can keep up.\n'
 	)
 	
 	psr.add_argument(
 		'-t', '--time', dest='duration', metavar='SEC', type=int, default=20,
-		  help='The total number of seconds to collect data, defaults to 20.'
+		  help='The total number of seconds to collect data, defaults to 20.\n'
 	)
 		 
-	defs = {'name':('0','1','2'), 
-		'short':('-0','-1','-2'), 'long':('--port-0','--port-1','--port-2'),
+	defs = {'name':(0,1,2), 'dist':(9, 11, 15),
 		'unix':('/dev/ttyTL0', '/dev/ttyTL1', '/dev/ttyTL2'),
 		'win':('COM0','COM1','COM2')
 	}
@@ -318,12 +317,18 @@ def main():
 		else: port = defs['unix'][i]
 		
 		psr.add_argument(
-			defs['short'][i], defs['long'][i], dest='port%s'%defs['name'][i],
-			metavar='PORT', type=str, default=port,
-			help='The communications port connected to TwinLeaf sensor' +\
-			defs['name'][i] + '.  Defaults to ' + port + ' This string '+\
-			'is passed to tldevice.Device.  To ignore data from this '+\
-			'sensor given an empty string as the portname (i.e. "").'
+			"--p%d"%defs['name'][i], dest='port%d'%defs['name'][i], metavar='PORT', 
+			type=str, default=port,
+			help='The communications port connected to VMR sensor ' +\
+			"%d"%defs['name'][i] + '.  Defaults to ' + port + '.  To ignore data '+\
+			'from this sensor give an empty string as the portname (i.e. "").'
+		)
+
+		psr.add_argument(
+			"--d%d"%defs['name'][i], dest='dist%s'%defs['name'][i], metavar='CM', 
+			type=str, default=port,
+			help='The distance in cm from the (TBD location) to the front face '+\
+			'of sensor %d'%defs['name'][i] + '.  Defaults to %d cm.\n'%defs['dist'][i]
 		)
 	
 	psr.add_argument(
@@ -337,9 +342,6 @@ def main():
 		help="An identifier for the object to be measured.  Will be used as "+\
 		"part of the output filenames."
 	)
-	#psr.add_argument("X_DIM", help="The X dimension of the test object in cm.")
-	#psr.add_argument("Y_DIM", help="The Y dimension of the test object in cm.")
-	#psr.add_argument("Z_DIM", help="The Z dimension of the test object in cm.")
 	
 	opts = psr.parse_args()
 	
@@ -380,9 +382,12 @@ def main():
 	g_bSigInt = False    # Global interrupt flag
 	
 	# Create one data collection thread per sensor
-	if len(opts.port0)>0: g_lCollectors.append( TlCollector(tldevice, '0', opts.port0, time0) )
-	if len(opts.port1)>0: g_lCollectors.append( TlCollector(tldevice, '1', opts.port1, time0) )
-	if len(opts.port2)>0: g_lCollectors.append( TlCollector(tldevice, '2', opts.port2, time0) )
+	if len(opts.port0) > 0: 
+		g_lCollectors.append( TlCollector(tldevice, '0', opts.port0, opts.dist0, time0) )
+	if len(opts.port1) > 0:
+		g_lCollectors.append( TlCollector(tldevice, '1', opts.port1, opts.dist1, time0) )
+	if len(opts.port2) > 0: 
+		g_lCollectors.append( TlCollector(tldevice, '2', opts.port2, opts.dist2, time0) )
 	
 	if len(g_lCollectors) == 0:
 		perr('No data collection ports specified, successfully did nothing.\n')

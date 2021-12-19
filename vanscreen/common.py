@@ -8,7 +8,9 @@ import numpy as np
 
 perr = sys.stderr.write  # shorten a long function names
 
-class VertFormatter(argparse.HelpFormatter):
+# Fix dubious help text output ############################################# #
+
+class CustomFormatter(argparse.HelpFormatter):
 	"""Allow for manual line breaks in description and epilog blocks of help text.
 	To insert a line break use the vertical tab (\\v) character into a text block."""
 	def _fill_text(self, text, width, indent):
@@ -20,31 +22,49 @@ class VertFormatter(argparse.HelpFormatter):
 				s, width, initial_indent=indent, subsequent_indent=indent
 			))
 		return '\n'.join(l)
-		
 
-class TlCollector(threading.Thread):
+	def _split_lines(self, text, width):
+		# add empty line if help ends with \n
+		lines = super()._split_lines(text, width)
+		if text.endswith('\n'):
+			lines += ['']
+		return lines
+
+# Collect raw data for single sensor ####################################### #
+
+class VMR(threading.Thread):
 	"""
 	Gather data from a single serial port and generate a list ofdata values
 	and associated time values
 	"""
-	def __init__(self, tlmodule, sid, port, time0):
+	def __init__(self, tlmodule, sid, port, dist, time0):
 		threading.Thread.__init__(self)
-		self.sid = sid
-		self.port = port
-		self.time0 = time0
-		self.time = []
-		self.raw_data = []
+		self.sid = sid      # Sensor ID
+		self.port = port    # Comm port
+		self.dist = dist    # In centimeters
+		self.time0 = time0  # Zero time for measurements
+		self.time = []      # Time values for measurements 
+		self.raw_data = []  # Raw mag, accel, gyro, pressure & thermal data values
+
 		perr('Connecting to %s for sensor %s data.\n'%(port, sid))
 		self.device = tlmodule.Device(port)
 		
 		# Save off the names of the data columns
 		self.columns = self.device._tio.protocol.columns
-		self.go = False      
+		self.go = False
+
+      # Internal magnetometer displacement from front face of sensor in long
+      # dimension.        X     Y     Z
+		self.displace = [0.01025, 0, 0.00475]
+
+	def time0(self, new_zero):
+		self.time0 = new_zero
 
 	def stop(self):
 		self.go = False
 	
 	def run(self):
+		self.raw_data = []
 		self.go = True
 		for row in self.device.data.iter():
 			if not self.go:
@@ -78,6 +98,8 @@ class TlCollector(threading.Thread):
 			dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
 		)
 
+
+# Human Amusement Device ################################################### #
 
 class Display(threading.Thread):
 	"""This is a simple aliveness printer.  It outputs a single . once a 

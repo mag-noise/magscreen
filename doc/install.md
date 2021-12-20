@@ -53,8 +53,8 @@ git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen  
 
 cd vanscreen  # Got to source directory
 
-cmd.exe /c "set PYTHONPATH=. && python3 vanscreen/mag_screen_gui.py -h"   # Windows
-env PYTHONPATH=. python3 vanscreen/mag_screen_gui.py -h                   # Linux/MacOS
+cmd.exe /c "set PYTHONPATH=. && python3 vanscreen/mag_screen.py -h"   # Windows
+env PYTHONPATH=. python3 vanscreen/mag_screen.py -h                   # Linux/MacOS
 ```
 
 ### Custom Port Names (optional)

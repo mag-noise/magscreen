@@ -30,17 +30,24 @@ Since you can't count of having administrator access to a computer, the followin
 proceedure assumes installation in a non-priviledged user account.  Eliminate the
 argument `--user` to install the software below in a system wide manner.
 
-Open a cmd.exe, or bash shell and issue the following commands to install the
-library  packages needed by the magnetic cleanliness screening programs:
-```bash
-# In commands below, use "py" or "python" instead of "python3" on Windows
-python3 -m pip install --user -U pip
-python3 -m pip install --user --prefer-binary -U scipy
-python3 -m pip install --user --prefer-binary -U matplotlib
-python3 -m pip install --user --prefer-binary -U tio
+For **Windows** open a cmd.exe and issue the following commands to install
+the library packages needed by the magnetic screening programs:
+```batch
+python -m pip install --upgrade pip
+python -m pip install --prefer-binary --upgrade scipy
+python -m pip install --prefer-binary --upgrade matplotlib
+python -m pip install --prefer-binary --upgrade tio
 ```
-Not that this installs software *only* for the current user.  This step will have
-to be repeated for each user that wishes to run the screening program.  
+
+The equivalent commands for the system python on Linux woud be:
+```bash
+python3 -m pip install --user --upgrade pip
+python3 -m pip install --user --upgrade scipy
+python3 -m pip install --user --upgrade matplotlib
+python3 -m pip install --user --upgrade tio
+```
+Both command stets installs software *only* for the current user, since on  
+Windows python is installed in the user home directory, not a system location.
 
 For reference the twinleaf software can be found at [https://github.com/twinleaf/tio-python](https://github.com/twinleaf/tio-python). The Twinleaf sensor software is in package `tio` 
 that we installed above.
@@ -53,21 +60,34 @@ package.
 ```bash
 git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen  # Get software
 # Use your HawkID when prompted
-
-pip install vanscreen   # Install software
-
-mag_screen_gui          # Run the program
 ```
-If you are working on the source code then you can run the software from the
-source tree with out installation.  Example commands for doing so follow.
+You can test the software from the source code directory without installing in.
+This is handy for testing software changes. Example commands for doing so follow.
 ```bash
 git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen   # Get software
+cd vanscreen                                                           # Go to source directory
 
-cd vanscreen  # Got to source directory
-
-cmd.exe /c "set PYTHONPATH=. && python3 vanscreen/mag_screen.py -h"   # Windows
-env PYTHONPATH=. python3 vanscreen/mag_screen.py -h                   # Linux/MacOS
+set PYTHONPATH=. && python vanscreen/mag_screen.py -h  # Windows
+env PYTHONPATH=. python3 vanscreen/mag_screen.py -h    # Linux/MacOS
 ```
+
+To install the software so thats available outside the source directory:
+```bash
+pip install vanscreen  # Install software
+mag_screen -h          # A basic test, no sensors necessary
+```
+
+
+## Test installation
+
+A basic test of the software is to make sure it starts and can print it's help text.
+To do this open a new bash or cmd window and run:
+```bash
+mag_screen -h
+```
+If this runs and prints the command line help for the program then you are ready to
+plug in sensors and go on to the next step.
+
 
 ### Custom Port Names (optional)
 
@@ -95,12 +115,4 @@ To use the rules file:
 sudo cp vanscreen/99-twinleaf-usb.rules /etc/udev/rules.d
 sudo udevadm control --reload-rules
 ```
-
-## Test installation
-
-A basic test of the software is to make sure it starts and can print it's help text.  To do this open a new bash or cmd window and run:
-```bash
-mag_screen -h
-```
-If this runs and prints the command line help for the program then you are ready to plug in sensors and go on to the next step.
 

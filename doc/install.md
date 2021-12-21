@@ -33,7 +33,7 @@ argument `--user` to install the software below in a system wide manner.
 Open a cmd.exe, or bash shell and issue the following commands to install the
 library  packages needed by the magnetic cleanliness screening programs:
 ```bash
-# In commands below, just use "py" not "python3" on windows
+# In commands below, use "py" or "python" instead of "python3" on Windows
 python3 -m pip install --user -U pip
 python3 -m pip install --user --prefer-binary -U scipy
 python3 -m pip install --user --prefer-binary -U matplotlib

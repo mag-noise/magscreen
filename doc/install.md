@@ -77,18 +77,6 @@ pip install vanscreen  # Install software
 mag_screen -h          # A basic test, no sensors necessary
 ```
 
-
-## Test installation
-
-A basic test of the software is to make sure it starts and can print it's help text.
-To do this open a new bash or cmd window and run:
-```bash
-mag_screen -h
-```
-If this runs and prints the command line help for the program then you are ready to
-plug in sensors and go on to the next step.
-
-
 ### Custom Port Names (optional)
 
 Twinleaf magnetometers are serial devices which are typically connected to the 

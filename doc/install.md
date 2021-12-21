@@ -52,7 +52,7 @@ Windows python is installed in the user home directory, not a system location.
 For reference the twinleaf software can be found at [https://github.com/twinleaf/tio-python](https://github.com/twinleaf/tio-python). The Twinleaf sensor software is in package `tio` 
 that we installed above.
 
-## Installing the Screening Programs
+## Install the Screening Programs
 
 The screening program is a standard python package and may be installed using
 `pip` as well.  Run the following command to download and install the vanscreen

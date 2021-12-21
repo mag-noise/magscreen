@@ -11,6 +11,13 @@ The magnetic screening software is written in Python 3.  You'll need a functing 
   you *know what you are doing*.  This will cause a split `PATH` which is a pain to deal
   with on Windows since the system `PATH` folders always proceed user `PATH` folders.
 
+  When picking the install directory choose something sane like:
+  ```batch
+  C:\Users\USERNAME\python38
+  ```
+  to avoid very long paths and folder names with spaces.  Windows has a 255 charater path
+  limit and script arguments split on spaces, no need to tempt fate.
+
 * **Linux** - Python 3 is likely pre-installed on your system.  If not use the system package
   manager to add python3 and python3-pip.
 

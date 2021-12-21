@@ -4,13 +4,17 @@
 
 The magnetic screening software is written in Python 3.  You'll need a functing python 3 interpreter.  The most common installation method varies by operating system as detailed below:
 
-* Windows - Install version 3.6 or better from (here)[https://www.python.org/downloads/windows/].
-  When doing so make sure that the python install directory is added to the system PATH.
+* **Windows** - Install the latest 3.8.x series version from [python.org](https://python.org),
+  at present thats [this version](https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe)
+  Developers have reported that the version of python from python.org works better then
+  the version from the Microsoft store.  **Do not install for all users** unless
+  you *know what you are doing*.  This will cause a split `PATH` which is a pain to deal
+  with on Windows since the system `PATH` folders always proceed user `PATH` folders.
 
-* Linux - Python 3 is likely pre-installed on your system.  If not use the system package
+* **Linux** - Python 3 is likely pre-installed on your system.  If not use the system package
   manager to add python3 and python3-pip.
 
-* MacOS - Likely you will use the (Homebrew)[https://brew.sh/] packagae manager to
+* **MacOS** - Likely you will use the [Homebrew](https://brew.sh/) package manager to
   install python.  Detailed instructions are TBD.
 
 ## Install Prequisites
@@ -22,7 +26,8 @@ argument `--user` to install the software below in a system wide manner.
 Open a cmd.exe, or bash shell and issue the following commands to install the
 library  packages needed by the magnetic cleanliness screening programs:
 ```bash
-python3 -m pip install --user -U pip 
+# In commands below, just use "py" not "python3" on windows
+python3 -m pip install --user -U pip
 python3 -m pip install --user --prefer-binary -U scipy
 python3 -m pip install --user --prefer-binary -U matplotlib
 python3 -m pip install --user --prefer-binary -U tio
@@ -30,7 +35,7 @@ python3 -m pip install --user --prefer-binary -U tio
 Not that this installs software *only* for the current user.  This step will have
 to be repeated for each user that wishes to run the screening program.  
 
-For reference the twinleaf software can be found at (https://github.com/twinleaf/tio-python)[https://github.com/twinleaf/tio-python].  The Twinleaf sensor software is in package `tio` 
+For reference the twinleaf software can be found at [https://github.com/twinleaf/tio-python](https://github.com/twinleaf/tio-python). The Twinleaf sensor software is in package `tio` 
 that we installed above.
 
 ## Installing the Screening Programs

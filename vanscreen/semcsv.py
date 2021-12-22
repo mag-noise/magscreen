@@ -3,12 +3,12 @@
 People like CSV files.  Humans can read them and most data plotting
 packages can too.  However, for long term archiving we need a format
 that has some structure so that software doesn't have to be re-written
-every time datasets change structure.
+every time datasets change.
 
 This parser adds a small semantic layer over top of the base CSV file
 format to address this issue.  If more structure is needed then what's
-provided here, then then some more complete file format such as CDF
-should be used instead.
+provided here, then then some more complete file format such as das2
+or CDF should be used instead.
 
 I've named this format "Semantic CSV", the whole concept has probably
 been invented independently 4,000 times before.

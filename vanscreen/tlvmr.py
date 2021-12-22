@@ -222,68 +222,77 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 		
 	if not sFile.lower().endswith('.csv'):  sFile = "%s.csv"%sFile
 
-	# Number of columns is lVMRs*4 or 2 if no vmrs
+	# Number of columns is lVMRs*5 or 3 if no vmrs
 	if len(lVMRs) > 0:
-		nCols = len(lVMRs)*4 + (len(lVMRs) - 1)
+		nCols = len(lVMRs)*5
 	else:
-		nCols = 2
+		nCols = 3
 
 	nSensors = len(lVMRs)
 
 	# Control our newline chars, mime text/csv (RFC-4180) calls for \r\n explicitly
 	with open(sFile, 'w', newline='') as fOut:
 
-		if sTitle:  fOut.write('"%s"'%sTitle.replace('"',"'"))
-		else:  fOut.write('"Mag Vectors"')
+		if sTitle:  fOut.write('"G","Title","%s"'%sTitle.replace('"',"'"))
+		else:  fOut.write('"G","Title","Mag Vectors"')
 		
-		fOut.write("%s\r\n%s\r\n"%(','*(nCols - 1), ','*(nCols - 1)))
+		fOut.write("%s\r\n%s\r\n"%(','*(nCols - 3), ','*(nCols - 1)))
 
 		# Property headers
 		if dProps:
 			lKeys = list(dProps.keys())
 			lKeys.sort()
 			for key in lKeys:
-				fOut.write('"%s","%s"'%(key.replace('"',"'"), dProps[key].replace('"',"'")))
-
-				if nCols > 2: fOut.write(','*(nCols - 2))
-				fOut.write('\r\n')
-
-		fOut.write('"Datasets",%n%s\r\n'%(nSensors, ','*(nCols - 2)  ))
+				fOut.write(
+					'"G","%s","%s"'%(key.replace('"',"'"), dProps[key].replace('"',"'"))
+				)
+				fOut.write('%s\r\n'%(','*(nCols-3)))
 
 		if nSensors == 0: return  # If no sensors, just write the properties
+
+		# If we have more then one sensor, write interleaved data
+		if nSensors > 1:
+			fOut.write('"F","Interleave"')
+			for i in range(nSensors): 
+				fOut.write(',"%d-%d"'%(i*5, i*5+4)) # Inclusive upper bound
+
+			fOut.write("%s\r\n"%(','%(nCols - (nSensors+1))))
 
 		# Dataset Headers: fill by column
 		fOut.write(','*(nCols-1)+'\r\n')
 
-		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch','','Offset [s]')
+		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch')
 
 		# Grid of empty strings
-		llHdrs = [ ['']*len(tKeys) for n in range(5*nSensors - 1) ]
+		llHdrs = [ ['']*len(tKeys) for n in range(5*nSensors) ]
 
 		for i in range(nSensors):  # i = col index * 5, j = row index
 			vmr = lVMRs[i]
-			for j in range(len(tKeys)): llHdrs[j][i*5] = '"%s"'%tKeys[j] # Sub hdrs
+			for j in range(len(tKeys)): 
+				llHdrs[j][i*5]   = '"P"'           # Property
+				llHdrs[j][i*5+1] = '"%s"'%tKeys[j] # Sub hdrs
 
-			llHdrs[0][i*5 + 1] = '"%s"'%vmr.sid              # Dataset 
+			llHdrs[0][i*5 + 2] = '"%s"'%vmr.sid              # Dataset 
 
-			llHdrs[1][i*5 + 1] = '"%s"'%vmr.dev_info         # Sensor
+			llHdrs[1][i*5 + 2] = '"%s"'%vmr.dev_info         # Sensor
 
-			llHdrs[2][i*5 + 1] = '"0x%04X"'%vmr.vid          # UART
-			llHdrs[2][i*5 + 2] = '"0x%04X"'%vmr.pid
-			llHdrs[2][i*5 + 3] = '"%s"'%vmr.serialno
+			llHdrs[2][i*5 + 2] = '"0x%04X"'%vmr.vid          # UART
+			llHdrs[2][i*5 + 3] = '"0x%04X"'%vmr.pid
+			llHdrs[2][i*5 + 4] = '"%s"'%vmr.serialno
 
-			llHdrs[3][i*5 + 1] = '"%s"'%vmr.port             # Port
+			llHdrs[3][i*5 + 2] = '"%s"'%vmr.port             # Port
 
-			llHdrs[4][i*5 + 1] = '%.2f'%vmr.dist             # Distance
-			llHdrs[4][i*5 + 2] = '"[cm]"'
+			llHdrs[4][i*5 + 2] = '%.2f'%vmr.dist             # Distance
+			llHdrs[4][i*5 + 3] = '"[cm]"'
 
-			llHdrs[5][i*5 + 1] = '"%s"'%_basetime(vmr.time0) # Epoch
+			llHdrs[5][i*5 + 2] = '"%s"'%_basetime(vmr.time0) # Epoch
 
-			# Blank Line
-
-			llHdrs[7][i*5 + 1] = '"Bx [nT]"'                 # Offset [s]
-			llHdrs[7][i*5 + 2] = '"By [nT]"'
-			llHdrs[7][i*5 + 3] = '"Bz [nT]"'
+		for i in range(nSensors):
+			llHdrs[7][i*5]     = '"H"'
+			llHdrs[7][i*5 + 1] = '"Offset [s]"'
+			llHdrs[7][i*5 + 2] = '"Bx [nT]"' 
+			llHdrs[7][i*5 + 3] = '"By [nT]"'
+			llHdrs[7][i*5 + 4] = '"Bz [nT]"'
 
 		# Dataset Headers: write by row
 		for j in range(len(tKeys)):
@@ -304,10 +313,10 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 			# At least one still has data
 			for i in range(nSensors):
 				vmr = lVMRs[i]
-				if i > 0: fOut.write(',,')
+				if i > 0: fOut.write(',')
 
-				if nRow > len(vmr):  fOut.write(',,,')
-				else:  fOut.write('%.3f,%.1f,%.1f,%.1f'%vmr[nRow - 1])
+				if nRow > len(vmr):  fOut.write(',,,,')
+				else:  fOut.write('"D",%.3f,%.1f,%.1f,%.1f'%vmr[nRow - 1])
 
 			fOut.write('\r\n')
 
@@ -315,40 +324,5 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 
 	perr("%d raw measurements written to %s"%(nVals, sFile))
 
-
-# ########################################################################## #
-
-def read_mag_vecs(sFile):
-	"""Read 1-N mag vector series from a file into a dictionary
-
-	Args:
-		sFile - A file written by write_mag_vecs()
-
-	Returns: dict
-		A dictionary is returned containing all data from the file it has
-		the following keys:
-
-		'props': A sub dictionary of test properties
-		'datasets': List of sensor data output dictionaries.  each one has
-		          the following sub items:
-
-			'Sensor', 'UART', 'Port', 'Distance', 'Time0', 
-			'offset', 'Bx', 'By', 'Bz'
-
-		The values for the t_offset, Bx, By & Bz are returned as numpy array.
-	"""
-
-	# Reading is harder then writing, get help from CSV module
-	ds = {}
-
-	with open(sFile, 'r', newline='') as fIn:
-		rdr = csv.reader(fIn)
-
-		row = next(rdr)
-		ds['title'] = row[0]
-
-		row = next(rdr) # Blank
-
-		# Save properties
 
 

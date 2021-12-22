@@ -435,8 +435,14 @@ def main():
 	# Save raw-data from collectors
 	sFile = pjoin(opts.out_dir, "%s.csv"%safe_filename(opts.PART))
 	sTitle = "Magnetic Screening Test, Raw Data"
-	save_mag_vecs(sFile, g_lCollectors, sTitle, test_properties(opts.PART, opts.msg))
+	write_mag_vecs(sFile, g_lCollectors, sTitle, test_properties(opts.PART, opts.msg))
 
+	# Plot time series and PSD of the raw data, as a cross check
+	dData = read_mag_vecs(sFile)
+	write_mag_psd(dData)
+
+	# Now for the roll-up information...
+	
 	# Parse raw data from the collectors into meaningful measurments
 	data = get_moments(g_lCollectors)
 	

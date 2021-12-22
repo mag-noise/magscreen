@@ -88,6 +88,8 @@ class VMR(threading.Thread):
 		threading.Thread.__init__(self)
 		self.sid = sid      # Sensor ID
 		self.serialno = serialno
+		self.pid = pid
+		self.vid = vid
 		self.dist = 999     # In centimeters
 		self.rate = hertz
 		self.time0 = time.time()
@@ -196,26 +198,24 @@ class VMR(threading.Thread):
 			dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
 		)
 
+# ########################################################################## #
 
-def save_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
-	"""Save a set of VMR readings to a CSV file
+def _basetime(rTime):
+	sTime = datetime.datetime.fromtimestamp(rTime).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+	sTz = time.strftime("%z",time.localtime(rTime))
+	return "%s%s"%(sTime, sTz)
+
+def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
+	"""Save a set of VMR readings to a semantic CSV file
 	Args:
 		sFile (str): The abs pathname to write, directories are created if needed
 		lVMRs (list,VMR): A list of VMR objects with data
 		dProps (dict): A dictionary of extra properties to save in the file
 	Returns:
 		The total number of mag vectors written
-
-
-	Output:
-		Writes data in the following layout:
-
-		Properties
-
-		Sens1 Time, Sens1 Bx, Sens1 By, Sens1 Bz, (empty row), Sens2 Time, Sens2 Bx, ...
-
-		All columns have header rows
 	"""
+
+	# Writing is easier then reading, just do this directly, ignore csv module
 
 	sDir = dname(sFile)
 	if len(sDir) > 0: os.makedirs(sDir, exist_ok=True)
@@ -233,9 +233,10 @@ def save_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 	# Control our newline chars, mime text/csv (RFC-4180) calls for \r\n explicitly
 	with open(sFile, 'w', newline='') as fOut:
 
-		if sTitle:
-			fOut.write('"%s"'%sTitle.replace('"',"'"))
-			fOut.write("%s\r\n%s\r\n"%(','*(nCols - 2), ','*(nCols - 1)))
+		if sTitle:  fOut.write('"%s"'%sTitle.replace('"',"'"))
+		else:  fOut.write('"Mag Vectors"')
+		
+		fOut.write("%s\r\n%s\r\n"%(','*(nCols - 1), ','*(nCols - 1)))
 
 		# Property headers
 		if dProps:
@@ -247,44 +248,46 @@ def save_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 				if nCols > 2: fOut.write(','*(nCols - 2))
 				fOut.write('\r\n')
 
+		fOut.write('"Datasets",%n%s\r\n'%(nSensors, ','*(nCols - 2)  ))
+
 		if nSensors == 0: return  # If no sensors, just write the properties
 
-		# Sensor Headers
+		# Dataset Headers: fill by column
 		fOut.write(','*(nCols-1)+'\r\n')
 
-		for i in range(nSensors):   # Device ID
-			vmr = lVMRs[i]
-			if i > 0: fOut.write(',,')
-			fOut.write('"Sensor %s ID","%s",,'%(vmr.sid, vmr.dev_info))
-		fOut.write('\r\n')
+		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch','','Offset [s]')
 
-		for i in range(nSensors):   # Device port
-			vmr = lVMRs[i]
-			if i > 0: fOut.write(',,')
-			fOut.write('"Sensor %s Port","%s",,'%(vmr.sid, vmr.port))
-		fOut.write('\r\n')		
+		# Grid of empty strings
+		llHdrs = [ ['']*len(tKeys) for n in range(5*nSensors - 1) ]
 
-		for i in range(nSensors):   # Device distance
+		for i in range(nSensors):  # i = col index * 5, j = row index
 			vmr = lVMRs[i]
-			if i > 0: fOut.write(',,')
-			fOut.write('"Sensor %s Dist",%0.2f,"[cm]",'%(vmr.sid, vmr.dist))
-		fOut.write('\r\n')
+			for j in range(len(tKeys)): llHdrs[j][i*5] = '"%s"'%tKeys[j] # Sub hdrs
 
-		for i in range(nSensors):   # Device time base
-			vmr = lVMRs[i]
-			if i > 0: fOut.write(',,')
-			fOut.write('"Sensor %s Time[0]","%s",,'%(vmr.sid, _basetime(vmr.time0)))
-		fOut.write('\r\n')
+			llHdrs[0][i*5 + 1] = '"%s"'%vmr.sid              # Dataset 
 
-		fOut.write('%s\r\n'%(','*(nCols-1)))
+			llHdrs[1][i*5 + 1] = '"%s"'%vmr.dev_info         # Sensor
 
-		# Data column headers
-		if nSensors: fOut.write(','*nCols+'\r\n')
-		for i in range(nSensors):
-			vmr = lVMRs[i]
-			if i > 0: fOut.write(',,')
-			fOut.write('"time offset [s]","Bx [nT]","By [nT]","Bz [nT]"')
-		fOut.write('\r\n')
+			llHdrs[2][i*5 + 1] = '"0x%04X"'%vmr.vid          # UART
+			llHdrs[2][i*5 + 2] = '"0x%04X"'%vmr.pid
+			llHdrs[2][i*5 + 3] = '"%s"'%vmr.serialno
+
+			llHdrs[3][i*5 + 1] = '"%s"'%vmr.port             # Port
+
+			llHdrs[4][i*5 + 1] = '%.2f'%vmr.dist             # Distance
+			llHdrs[4][i*5 + 2] = '"[cm]"'
+
+			llHdrs[5][i*5 + 1] = '"%s"'%_basetime(vmr.time0) # Epoch
+
+			# Blank Line
+
+			llHdrs[7][i*5 + 1] = '"Bx [nT]"'                 # Offset [s]
+			llHdrs[7][i*5 + 2] = '"By [nT]"'
+			llHdrs[7][i*5 + 3] = '"Bz [nT]"'
+
+		# Dataset Headers: write by row
+		for j in range(len(tKeys)):
+			fOut.write( "%s\r\n"%( ','.join( llHdrs[j])) )
 
 		# Saving data values
 		i = 0 # Sensor
@@ -313,7 +316,39 @@ def save_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 	perr("%d raw measurements written to %s"%(nVals, sFile))
 
 
-def _basetime(rTime):
-	sTime = datetime.datetime.fromtimestamp(rTime).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-	sTz = time.strftime("%z",time.localtime(rTime))
-	return "%s%s"%(sTime, sTz)
+# ########################################################################## #
+
+def read_mag_vecs(sFile):
+	"""Read 1-N mag vector series from a file into a dictionary
+
+	Args:
+		sFile - A file written by write_mag_vecs()
+
+	Returns: dict
+		A dictionary is returned containing all data from the file it has
+		the following keys:
+
+		'props': A sub dictionary of test properties
+		'datasets': List of sensor data output dictionaries.  each one has
+		          the following sub items:
+
+			'Sensor', 'UART', 'Port', 'Distance', 'Time0', 
+			'offset', 'Bx', 'By', 'Bz'
+
+		The values for the t_offset, Bx, By & Bz are returned as numpy array.
+	"""
+
+	# Reading is harder then writing, get help from CSV module
+	ds = {}
+
+	with open(sFile, 'r', newline='') as fIn:
+		rdr = csv.reader(fIn)
+
+		row = next(rdr)
+		ds['title'] = row[0]
+
+		row = next(rdr) # Blank
+
+		# Save properties
+
+

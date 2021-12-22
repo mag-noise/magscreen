@@ -263,7 +263,7 @@ def test_properties(sPart, sComments=None):
 		'Part':sPart,
 		'Timestamp': time.strftime('%Y-%m-%dT%H:%M:%S%z'), # Use ISO 8601 local times
 		'User': getpass.getuser(),
-		'Host': platform.node(),
+		'Host': platform.node().lower(),
 		'Version':g_sVersion
 	}
 
@@ -366,13 +366,13 @@ def main():
 	# Since SIGALRM isn't available on Windows, spawn a thread to countdown to
 	# the end of the data collection period, check user supplied time
 	if opts.duration < 1 or opts.duration > 60*60:
-		perr('Test duration must be between 1 second and 1 hour\n')
+		perr('ERROR: Test duration must be between 1 second and 1 hour\n')
 		return 7
 	
 	# Set at X samples per second per sensor, should be no more then
 	# 10 samples per second so that slow python code can keep up
 	if (opts.sample_hz < 1) or (opts.sample_hz >= 200):
-		perr("Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
+		perr("ERROR: Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
 		return 8
 
 	rTime0 = time.time()  # Current unix time in floating point seconds
@@ -389,14 +389,14 @@ def main():
 		for j in range(3): 
 			if (j != i) and (len(tSer[j]) > 0): lTest.append(tSer[j])
 		if i in lTest:
-			perr("UART serial number %s is not unique!\n")
+			perr("ERROR: UART serial number %s is not unique!\n")
 			return 13
 
 		try:
 			g_lCollectors.append( VMR('%d'%i, tSer[i], opts.sample_hz) )
 		except OSError as e:
 			perr("ERROR: %s\n"%e)
-			perr('INFO: Sensors can be ignored using -s0 "", -s1 "", or -s2 "".')
+			perr('INFO:  Sensors can be ignored using -s0 "", -s1 "", or -s2 "".')
 			perr('  Use -h for more info.\n')
 			return 15
 
@@ -404,15 +404,15 @@ def main():
 		g_lCollectors[-1].set_dist(opts.sample_hz)
 
 	if len(g_lCollectors) == 0:
-		perr('No data collection ports specified, successfully did nothing.\n')
+		perr('INFO:  No data collection ports specified, successfully did nothing.\n')
 		return 0
 	
 	# Create a display output thread
-	perr("Use CTRL+C to quit early\n")
-	g_display = Display("Collecting ~%d seconds of data "%opts.duration)
+	perr("MSG:   Use CTRL+C to quit early\n")
+	g_display = Display("MSG:   Collecting ~%d seconds of data "%opts.duration)
 	
 	# create an alarm thread to stop taking data
-	alarm = threading.Timer(opts.duration + (time.time() - time0), setDone)
+	alarm = threading.Timer(opts.duration + (time.time() - rTime0), setDone)
 	
 	# Start all the threads
 	for collector in g_lCollectors:
@@ -429,7 +429,7 @@ def main():
 	alarm.cancel() # Cancel the alarm if it hasn't gone off
 	perr('\n')
 	if g_bSigInt:
-		perr('Data collection terminated, no output written\n')
+		perr('WARN:  Data collection terminated, no output written\n')
 		return 4  # An error return value
 	
 	# Save raw-data from collectors

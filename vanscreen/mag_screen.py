@@ -375,7 +375,7 @@ def main():
 		perr("Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
 		return 8
 
-	time0 = time.time()  # Current unix time in floating point seconds
+	rTime0 = time.time()  # Current unix time in floating point seconds
 	
 	g_bSigInt = False    # Global interrupt flag
 
@@ -400,7 +400,7 @@ def main():
 			perr('  Use -h for more info.\n')
 			return 15
 
-		g_lCollectors[-1].set_time0(opts.sample_hz)
+		g_lCollectors[-1].set_time0(rTime0)
 		g_lCollectors[-1].set_dist(opts.sample_hz)
 
 	if len(g_lCollectors) == 0:

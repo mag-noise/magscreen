@@ -438,7 +438,7 @@ def main():
 	write_mag_vecs(sFile, g_lCollectors, sTitle, test_properties(opts.PART, opts.msg))
 
 	# Plot time series and PSD of the raw data, as a cross check
-	dData = read_mag_vecs(sFile)
+	dData = semcsv.reader(sFile)
 	write_mag_psd(dData)
 
 	# Now for the roll-up information...

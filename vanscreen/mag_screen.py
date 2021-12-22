@@ -9,10 +9,10 @@ import signal
 import threading     # Mostly waiting on I/O so simple threads are okay
 import time          # if the data rate needs to go up significantly we
 import datetime      # will need to rewrite using the multiprocess module.
-import serial        # Need to send commands to change data rate
 import getpass       # Username
 import platform      # Hostname
 from os.path import join as pjoin
+
 
 # Math stuff
 import numpy as np
@@ -316,21 +316,21 @@ def main():
 		  help='The total number of seconds to collect data, defaults to 20.\n'
 	)
 		 
-	defs = {'name':(0,1,2), 'dist':(9, 11, 15),
-		'unix':('/dev/ttyTL0', '/dev/ttyTL1', '/dev/ttyTL2'),
-		'win':('COM0','COM1','COM2')
+	defs = {
+		'name':(0,1,2), 'dist':(9, 11, 15), 'serial':('DT04H6OF','DT04H6OX','DT04H6NY')
 	}
 	
 	for i in range(3):
-		if sys.platform == 'win32': port = defs['win'][i]
-		else: port = defs['unix'][i]
+		ser_num = defs['serial'][i]
 		
 		psr.add_argument(
-			"--p%d"%defs['name'][i], dest='port%d'%defs['name'][i], metavar='PORT', 
-			type=str, default=port,
-			help='The communications port connected to VMR sensor ' +\
-			"%d"%defs['name'][i] + '.  Defaults to ' + port + '.  To ignore data '+\
-			'from this sensor give an empty string as the portname (i.e. "").'
+			"--s%d"%defs['name'][i], dest='serialno%d'%defs['name'][i], metavar='SERIAL',
+			type=str, default=ser_num,
+			help='The UART serial number of the UART hosting VMR sensor ' +\
+			"%d"%defs['name'][i] + '.  Defaults to ' + ser_num + '.  To ignore data '+\
+			'from this sensor give an empty string as the serial number (i.e. "").' +\
+			'The full serial number need not be supplied so long the provide string '+\
+			'is sufficent to distinguish each sensor.'
 		)
 
 		psr.add_argument(
@@ -358,14 +358,6 @@ def main():
 	)
 	
 	opts = psr.parse_args()
-	
-	# Delay importing the twin leaf libraries so that help text is available
-	# even if the required python modules are not installed
-	try:
-		import tldevice
-	except ImportError as exc:
-		perr('%s\nGo to https://github.com/twinleaf/tio-python install instructions\n'%str(exc))
-		return 3 # An error return value
 		
 	# Set user interup handlers in case user wants to quite early.
 	signal.signal(signal.SIGINT, setQuit)
@@ -381,28 +373,36 @@ def main():
 	# 10 samples per second so that slow python code can keep up
 	if (opts.sample_hz < 1) or (opts.sample_hz >= 200):
 		perr("Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
-		return 14
-
-	xPkt = bytearray(b'data.rate %d\r'%opts.sample_hz)
-	s = serial.serial_for_url(opts.port0, baudrate=115200, timeout=1)
-	s.write(xPkt)
-	s = serial.serial_for_url(opts.port1, baudrate=115200, timeout=1)
-	s.write(xPkt)
-	s = serial.serial_for_url(opts.port2, baudrate=115200, timeout=1)
-	s.write(xPkt)
+		return 8
 
 	time0 = time.time()  # Current unix time in floating point seconds
 	
 	g_bSigInt = False    # Global interrupt flag
-	
-	# Create one data collection thread per sensor
-	if len(opts.port0) > 0: 
-		g_lCollectors.append( VMR(tldevice, '0', opts.port0, opts.dist0, time0) )
-	if len(opts.port1) > 0:
-		g_lCollectors.append( VMR(tldevice, '1', opts.port1, opts.dist1, time0) )
-	if len(opts.port2) > 0: 
-		g_lCollectors.append( VMR(tldevice, '2', opts.port2, opts.dist2, time0) )
-	
+
+	# Check that our non-empty sensors can be distinguished from each other
+	g_lCollectors = []
+	tSer = (opts.serialno0, opts.serialno1, opts.serialno2)
+	for i in range(3):
+		if len(tSer) == 0: continue
+
+		lTest = []
+		for j in range(3): 
+			if (j != i) and (len(tSer[j]) > 0): lTest.append(tSer[j])
+		if i in lTest:
+			perr("UART serial number %s is not unique!\n")
+			return 13
+
+		try:
+			g_lCollectors.append( VMR('%d'%i, tSer[i], opts.sample_hz) )
+		except OSError as e:
+			perr("ERROR: %s\n"%e)
+			perr('INFO: Sensors can be ignored using -s0 "", -s1 "", or -s2 "".')
+			perr('  Use -h for more info.\n')
+			return 15
+
+		g_lCollectors[-1].set_time0(opts.sample_hz)
+		g_lCollectors[-1].set_dist(opts.sample_hz)
+
 	if len(g_lCollectors) == 0:
 		perr('No data collection ports specified, successfully did nothing.\n')
 		return 0

@@ -6,27 +6,111 @@ import threading
 import numpy as np
 import time
 import datetime
-
+import serial
+import serial.tools.list_ports
 from os.path import dirname as dname
 
+try:
+	import tldevice
+except ImportError as exc:
+	perr('%s\nGo to https://github.com/twinleaf/tio-python install instructions\n'%str(exc))
+	
 perr = sys.stderr.write  # shorten a long function names
+
+# ########################################################################## #
+def find_device(serialno, pid=0x6015, vid=0x0403):
+	"""Find the port number for a serial device.
+
+	Args:
+		serialno (str): The inital portion of the serial number.  The device 
+			serial number must start with this string.  On Windows serial
+			numbers are typically right extended with sub identifier, thus
+			the full serial number need not match.
+
+		pid (int): The product ID for the device.  An example is 0x6015,
+			which is the FTDI, FT230X Basic UART.
+
+		vid (int): The vendor ID for the device.  An example is 0x0403 which
+		   is assigned to 'FTDI - Future Technology Devices International LTD'
+
+	Returns:
+		str: The port name.  On Linux this will be /dev/ttyUSB0 or similar. 
+			On Windows it will be COM1 or similar
+		None: If the device could not be found.
+	"""
+	port = None
+	lDevs = serial.tools.list_ports.comports()
+	for dev in lDevs:
+		if not dev.serial_number: continue
+		if dev.vid != vid: continue
+		if dev.pid != pid: continue
+
+		if dev.serial_number.startswith(serialno):
+			return dev.device  # The device file name or com port name
+
+	return None
+
+# ########################################################################## #
 
 class VMR(threading.Thread):
 	"""
 	Gather data from a single serial port and generate a list ofdata values
 	and associated time values
 	"""
-	def __init__(self, tlmodule, sid, port, dist, time0):
+	def __init__(self, sid, serialno, hertz, pid=0x6015, vid=0x0403):
+		"""Create a new VMR communication object.
+
+		Instead of connecting to a specific COM or TTY port, available ports are
+		queried for the given UART serial number, and if a match is found, a port
+		number association is made.  Since adaptor boxen can be physically labeled
+		with the UART serial number this avoids port assignment confusion.
+
+		Args:
+			sid (str): Sensor ID, this is typically an integer from 0 to 2 as a string.
+
+			hertz (int): Set the data sampling rate in Hertz.  Value must be between
+				1 Hz and 200 Hz inclusive.  For three sensors 10 Hz is recommended.
+				
+				Note: On Windows rate settings can't be changed after collecting data.
+				      So the rate is sent in this constructor.
+
+			serialno (str): The serial number of the UART to which the sensor is
+				attached.  The full serial number need not be supplied.  The device
+				serial number only needs to startwith this string in order to be 
+				considered a match.
+
+			pid (int): The product ID for the device.  Defaults to 0x6015,
+				which is the FTDI, FT230X Basic UART.
+
+			vid (int): The vendor ID for the device.  Defaults to 0x0403 which
+		   is assigned to 'FTDI - Future Technology Devices International LTD'
+		"""
 		threading.Thread.__init__(self)
 		self.sid = sid      # Sensor ID
-		self.port = port    # Comm port
-		self.dist = dist    # In centimeters
-		self.time0 = time0  # Zero time for measurements
+		self.serialno = serialno
+		self.dist = 999     # In centimeters
+		self.rate = hertz
+		self.time0 = time.time()
 		self.time = []      # Time values for measurements 
 		self.raw_data = []  # Raw mag, accel, gyro, pressure & thermal data values
 
-		perr('Connecting to %s for sensor %s data.\n'%(port, sid))
-		self.device = tlmodule.Device(port)
+		self.port = find_device(serialno,pid,vid)
+		if self.port is None:
+			raise EnvironmentError(
+				"Could not locate device serial %s, VID:SID=%04X:%04X."%(serialno, pid, vid)+\
+				"\n       Try unplugging and replugging the USB cable to trigger hot-plug actions."
+			)
+
+		perr('Connecting to UART %s on port %s for %d Hertz data for sensor %s\n'%(
+			self.serialno, self.port, self.rate, self.sid
+		))
+
+		xPkt = bytearray(b'data.rate %d\r'%hertz)
+		s = serial.serial_for_url(self.port, baudrate=115200, timeout=1)
+		s.write(xPkt)
+		s.close()
+
+		self.device = tldevice.Device(self.port)
 		
 		# Save off the names of the data columns
 		self.columns = self.device._tio.protocol.columns
@@ -42,15 +126,31 @@ class VMR(threading.Thread):
       # dimension.        X     Y     Z
 		self.displace = [0.01025, 0, 0.00475]
 
-	def time0(self, new_zero):
+	def set_dist(self, dist):
+		"""Set the distance from the sensor to the object measured
+
+		Args:
+			dist (float): The distance in centimeters from front face of the VMR 
+				sensor to the (center?) of the object to be measured.
+		"""
+		self.dist = dist
+
+	def set_time0(self, new_zero):
 		"""Reset the zero time for measurements.
 		Args:
-			new_zero (float): A unix time as returned by time.time()
+			time0 (float): The zero time for all measurements.  Data are saved as
+				offsets from this time point.  This is a floating point number of 
+				seconds as output from time.time().
 		"""
 		self.time0 = new_zero
 
 	def stop(self):
 		self.go = False
+
+	def close(self):
+		"""Close the comm port for this sensor.  Do this before creating an 
+		new connection to the same sensor at a different sampling rate.
+		"""
 	
 	def run(self):
 		self.raw_data = []

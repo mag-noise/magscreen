@@ -188,7 +188,7 @@ def _ds_finalize(dDs):
 	ds.pop('_bounds')
 	
 			
-def reader(sFile):
+def read(sFile):
 	"""Read a semantic CSV file and return a dictionary of global properties
 	and datasets.
 	"""

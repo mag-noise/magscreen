@@ -38,6 +38,10 @@ def find_device(serialno, pid=0x6015, vid=0x0403):
 			On Windows it will be COM1 or similar
 		None: If the device could not be found.
 	"""
+
+	perr("INFO:  Scanning for device 0x%04X, 0x%04X, %s (vendor, product, serial).\n"%(
+		vid,pid,serialno)
+	)
 	port = None
 	lDevs = serial.tools.list_ports.comports()
 	for dev in lDevs:
@@ -99,13 +103,14 @@ class VMR(threading.Thread):
 		self.port = find_device(serialno,pid,vid)
 		if self.port is None:
 			raise EnvironmentError(
-				"Could not locate device serial %s, VID:SID=%04X:%04X."%(serialno, pid, vid)+\
+				"Could not locate device 0x%04X, 0x%04X, %s (vendor, product, serial)."%(
+					vid, pid, serialno)+\
 				"\n       Try unplugging and replugging the USB cable to trigger hot-plug actions."
 			)
 
-		perr('Connecting to UART %s on port %s for %d Hertz data for sensor %s\n'%(
-			self.serialno, self.port, self.rate, self.sid
-		))
+		#perr('Connecting to UART %s on port %s for %d Hertz data for sensor %s\n'%(
+		#	self.serialno, self.port, self.rate, self.sid
+		#))
 
 		xPkt = bytearray(b'data.rate %d\r'%hertz)
 		s = serial.serial_for_url(self.port, baudrate=115200, timeout=1)
@@ -215,6 +220,9 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 		The total number of mag vectors written
 	"""
 
+	# map up to 26 colums to letters, not required by format, but easier on humans
+	_sCol = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 	# Writing is easier then reading, just do this directly, ignore csv module
 
 	sDir = dname(sFile)
@@ -254,21 +262,19 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 		if nSensors > 1:
 			fOut.write('"F","Interleave"')
 			for i in range(nSensors): 
-				fOut.write(',"%d-%d"'%(i*5, i*5+4)) # Inclusive upper bound
+				fOut.write(',"%s-%s"'%(_sCol[i*5], _sCol[i*5+4])) # Inclusive upper bound
 
-			fOut.write("%s\r\n"%(','%(nCols - (nSensors+1))))
+			fOut.write("%s\r\n"%(','*(nCols - (nSensors+1))))
 
 		# Dataset Headers: fill by column
 		fOut.write(','*(nCols-1)+'\r\n')
 
-		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch')
-
-		# Grid of empty strings
-		llHdrs = [ ['']*len(tKeys) for n in range(5*nSensors) ]
+		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch','','') # rows
+		llHdrs = [ ['']*(nSensors*5) for n in range(len(tKeys)) ]     # Empty grid
 
 		for i in range(nSensors):  # i = col index * 5, j = row index
 			vmr = lVMRs[i]
-			for j in range(len(tKeys)): 
+			for j in range(len(tKeys)-2):         # Last two rows are empty for now
 				llHdrs[j][i*5]   = '"P"'           # Property
 				llHdrs[j][i*5+1] = '"%s"'%tKeys[j] # Sub hdrs
 
@@ -322,7 +328,7 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 
 	nVals = sum([ len(vmr) for vmr in lVMRs]) * 3
 
-	perr("%d raw measurements written to %s"%(nVals, sFile))
+	perr("INFO:  %d raw measurements written to %s\n"%(nVals, sFile))
 
 
 

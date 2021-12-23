@@ -17,10 +17,13 @@ History:
    C. Piker 2021-12-21: Original v0.1
 """
 
+import sys
 import csv
 import re
 import math
 import numpy as np
+
+perr = sys.stderr.write  # shorten a long function name
 
 # Here's an example data file with interleaved data.  It consists of
 # 
@@ -75,24 +78,24 @@ class ParseError(Exception):
 		self.sFile = sFile
 		self.nLine = nLine
 
-	def __str__():
-		"%s, line %d: %s"%(self.sFile, self.nLine, super().__str__())
-	
+	def __str__(self):
+		return "%s, line %d: %s"%(self.sFile, self.nLine, super().__str__())
+
 
 def _toCol(sFile, nLine, sCol):
 	p = [1,26,26*26]
 	l = [0,0,0]
-
 	sUp = sCol.upper()
 	if (len(sUp) < 1) or (len(sUp)>3):
 		 raise ParseError(sFile, nLine, "Bad column spec '%s'"%sUp)
-	for c in sUp:
+	j = 0
+	for i in range(len(sUp)-1, -1, -1):
+		c = sUp[i]
 		if not c.isalpha():
 			raise ParseError(sFile, nLine, "Bad column spec '%s'"%sUp)
-		l.append(1 + ord(c)-ord('A'))
-	
+		l[j] = 1 + ord(c) - ord('A')
+		j += 1
 	iCol = (l[0]*p[0] + l[1]*p[1] + l[2]*p[2]) - 1
-
 	return iCol
 
 
@@ -100,18 +103,18 @@ def _new_ds(sFile, nLine, iBeg, iEnd):
 	try:
 		iBeg = int(iBeg,10)
 	except:
-		iBeg = _toCol(iBeg)
+		iBeg = _toCol(sFile, nLine, iBeg)
 
 	try:
-		iBeg = int(iEnd,10)
+		iEnd = int(iEnd,10)
 	except:
-		iBeg = _toCol(iEnd)	
+		iEnd = _toCol(sFile, nLine, iEnd)	
 
 	return {'_bounds':(iBeg,iEnd),'props':{},'vars':{},'_var_col':{}}
 
 
-def _parse_prop(dProps, row):
-	if (len(row) < 3) or (len(row[1] == 0)): return
+def _parse_props(dProps, row):
+	if (len(row) < 3) or (len(row[1]) == 0): return
 	dProps[row[1]] = [item for item in row[2:] if item] # Drop empty columns
 
 def _parse_ds_cols(sFile, nLine, ds,row):
@@ -145,8 +148,6 @@ def _parse_ds_cols(sFile, nLine, ds,row):
 		# Define new variables and units
 		for i in range(1,len(row)):
 			if len(row[i]) == 0: continue
-			
-			ds['vars'] = {'name':'','units':'','data':[]}
 
 			match = re.match(r"^(.*)\[(.*)\].*$",row[i])
 			if match:
@@ -159,13 +160,18 @@ def _parse_ds_cols(sFile, nLine, ds,row):
 			ds['vars'][sName] = {'units':sUnits, 'data':[]}
 			ds['_var_col'][i] = sName
 
+			#perr("New variable: %s (%s)\n"%(sName, sUnits))
+			#perr("Dataset vars now: %s at columns %s\n"%( str(ds['vars']), str(ds['_var_col']) ))
+
 	elif row[0] == 'D':
+
 		for i in range(1,len(row)):
 			if i not in ds['_var_col']:
 				raise ParseError(sFile, nLine, 
 					"No variable is associated with column %d. Are headers missing?"%(
 						i+ds['_bounds'][0])
 				)
+			#perr('Dataset contains: %s\n'%ds)
 			sVar = ds['_var_col'][i]
 			ds['vars'][sVar]['data'].append(row[i].strip())  # Convert to numpy array at export
 
@@ -173,24 +179,42 @@ def _parse_ds_cols(sFile, nLine, ds,row):
 def _ds_finalize(dDs):
 	"""Try to convert data values to floats and remove all column mappings"""
 
+	#perr('Finalize Ds Keys: %s\n'%dDs.keys())
+	#perr('Finalizse Ds Vars: %s\n'%dDs['vars'].keys())
+
 	for sVar in dDs['vars']:
-		dVar = dDs[sVar]
+		dVar = dDs['vars'][sVar]
 		# Try to convert float (with nan for ""), if that fails leave variable data
 		# as a string
-		lStr = dVar['data']
+		lStrs = dVar['data']
+		#perr("Data for %s:\n%s\n"%(sVar, dVar['data']))
 		try:
-			lFlt = [float(s) if len(s) > 0 else math.nan for f in l]
+			lFlt = [float(s) if len(s) > 0 else math.nan for s in lStrs]
 			dVar['data'] = np.array(lFlt, dtype=np.float)
 		except ValueError:
 			dVar['data'] = np.array(lStr)  # Leave as string data
 
 	dDs.pop('_var_col')
-	ds.pop('_bounds')
+	dDs.pop('_bounds')
 	
 			
 def read(sFile):
 	"""Read a semantic CSV file and return a dictionary of global properties
 	and datasets.
+
+	Returns: (dict, dict)
+		(global_properties, datasets) 
+		The properties dictionary contains lists for data values. Thus each
+		property can have multiple entries.
+
+		The datasets dictionary has the following sub items:
+		{
+			'props': { local property dictionary }
+			'vars': {
+				'data': ndarray,
+				'units': str
+			}
+		}
 	"""
 
 	dProps = {}
@@ -199,6 +223,8 @@ def read(sFile):
 	with open(sFile, 'r', newline='') as fIn:
 		rdr = csv.reader(fIn)
 		for row in rdr:
+
+			#perr("Reading %s\n"%str(row))
 
 			# Already three level deep, haven't even written anything :(
 			if len(row) < 2: continue
@@ -214,7 +240,7 @@ def read(sFile):
 			
 			if len(lDs) == 0:
 				if row[0] == 'G':
-					_parse_prop(dProps, row)
+					_parse_props(dProps, row)
 					continue
 
 				elif row[0] == 'F':
@@ -231,7 +257,8 @@ def read(sFile):
 							raise ParseError(sFile, rdr.line_num, "Bad column spec '%s'"%row[i])
 						iBeg = l[0]
 						iEnd = l[1]
-						lDs.append( _new_ds(iBeg, iEnd))
+						lDs.append( _new_ds(sFile, rdr.line_num, iBeg, iEnd))
+						i += 1
 			
 				elif (row[0] in ('P','H','D')) and (len(lDs) == 0): # PhD, totally not planned
 					lDs = [ _new_ds(0,1024)  ]
@@ -244,8 +271,9 @@ def read(sFile):
 			else:
 				# pull out columns and feed to each dataset object
 				for ds in lDs:
-					lSub = row[ ds['_bounds'][0]:ds['_bounds'][1] ]		
-					_parse_ds_cols(ds,lSub)
+					#perr("Reading columns: %s\n"%str(ds['_bounds']))
+					lSub = row[ ds['_bounds'][0] : ds['_bounds'][1] +1 ]
+					_parse_ds_cols(sFile, rdr.line_num, ds,lSub)
 
 	for ds in lDs:
 		_ds_finalize(ds)  # Convert to numpy, drop internal column tracking

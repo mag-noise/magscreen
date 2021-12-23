@@ -39,7 +39,7 @@ python -m pip install --prefer-binary --upgrade matplotlib
 python -m pip install --prefer-binary --upgrade tio
 ```
 
-The equivalent commands for the system python on Linux woud be:
+The equivalent commands for the system python on **Linux** woud be:
 ```bash
 python3 -m pip install --user --upgrade pip
 python3 -m pip install --user --upgrade scipy

@@ -211,12 +211,28 @@ class StrayFieldPlotter:
 		return self.next()
 
 	def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
-		i = np.argmax(aY)
+		""" Try to be smart about axis angles, if the Y point is above my 
+		text then use an up angle, otherwise a down angle.
+
+		This is not a good general function, it assumes the max value 
+		is on the right side of the plot.  Okay for mag screening, not
+		so good otherwise
+		"""
+		j = np.argmax(aY)
+
+		axis_to_data = oAxis.transAxes + oAxis.transData.inverted()
+		data_to_axis = axis_to_data.inverted()
+
+		lMaxPos = data_to_axis.transform((aX[j],aY[j]))
+		rTextPos = 0.97 - 0.08*iRow
+		if lMaxPos[1] > rTextPos: nAngleB = -60
+		else: nAngleB = 60
+
 		oAxis.annotate(
-			"%s_max=%.1f"%(sPre, aY[i]), xy=(aX[i], aY[i]), ha='right', va='top', 
-			xycoords='data', textcoords='axes fraction', xytext=(0.98, 0.97 - 0.08*iRow),
+			"%s_max=%.1f"%(sPre, aY[j]), xy=(aX[j], aY[j]), ha='right', va='top', 
+			xycoords='data', textcoords='axes fraction', xytext=(0.98, rTextPos),
 			fontsize=8, arrowprops={
-				"arrowstyle":"->","connectionstyle":"angle,angleA=0,angleB=60",
+				"arrowstyle":"->","connectionstyle":"angle,angleA=0,angleB=%d"%nAngleB,
 				"color":sColor
 			}
 		)
@@ -258,7 +274,11 @@ class StrayFieldPlotter:
 				axFreq.grid(True)
 
 				# Loop over components from a single sensor make time series and freq plot
-				for i in range(len(lColor)):
+				# Save the frequency data for later annotation.  We need to plot everything
+				# first or the plot limits are not determined!
+				lXf = [None]*3
+				lYf = [None]*3
+				for i in range(3):
 					#perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
 					aX = ds.vars['Offset'].data
 					aY = ds.vars[lComp[i]].data
@@ -270,16 +290,19 @@ class StrayFieldPlotter:
 					
 					nSegLen = 256
 					if len(ds.vars[sComp].data) < nSegLen: nSegLen = len(ds.vars[sComp].data)
-					(aX, aY) = signal.welch(ds.vars[sComp].data, nperseg=nSegLen, scaling='spectrum')
-					aY = np.sqrt(aY)
+					(aXf, aYf) = signal.welch(ds.vars[sComp].data, nperseg=nSegLen, scaling='spectrum')
+					aYf = np.sqrt(aYf)
 					
-					self.lBmax[iDs][i] = aY.max()  # Save off max value for next step
-
-					axFreq.plot(
-						aX, aY, "-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
+					self.lBmax[iDs][i] = aYf.max()  # Save off max value for next step
+					
+					axFreq.plot(aXf, aYf, 
+						"-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
 					)
-
-					self._markMaxAmp(axFreq, aX, aY, sComp, lColor[i], i)
+					lXf[i] = aXf
+					lYf[i] = aYf
+				
+				for i in range(3):
+					self._markMaxAmp(axFreq, lXf[i], lYf[i], lComp[i], lColor[i], i)
 
 				# Denote the sensor on the right, more room there.
 				lSensor = ds.props['Sensor'][0].split()
@@ -299,6 +322,8 @@ class StrayFieldPlotter:
 				axFreq.set_xlabel('Normalized Frequency')
 				axFreq.set_ylabel('Periodic Amplitude [%s]'%(ds.vars['Bx'].units))  # assume same units
 				axFreq.set_title(sTitle)
+
+				# Now for the ledgend
 				
 				iDs += 1  # Next distance please
 				iRow += 1 # Plot it on next row

@@ -269,7 +269,7 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 		# Dataset Headers: fill by column
 		fOut.write(','*(nCols-1)+'\r\n')
 
-		tKeys = ('Dataset','Sensor','UART','Port','Distance','Epoch','','') # rows
+		tKeys = ('Dataset','Sensor','UART','Port','Distance','Offset_cm','Epoch','','') # rows
 		llHdrs = [ ['']*(nSensors*5) for n in range(len(tKeys)) ]     # Empty grid
 
 		for i in range(nSensors):  # i = col index * 5, j = row index
@@ -291,14 +291,18 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 			llHdrs[4][i*5 + 2] = '%.2f'%vmr.dist             # Distance
 			llHdrs[4][i*5 + 3] = '"[cm]"'
 
-			llHdrs[5][i*5 + 2] = '"%s"'%_basetime(vmr.time0) # Epoch
+			llHdrs[5][i*5 + 2] = '1.025'                     # x,y,z magnetometer offests
+			llHdrs[5][i*5 + 3] = '0.0'
+			llHdrs[5][i*5 + 4] = '0.475'
+
+			llHdrs[6][i*5 + 2] = '"%s"'%_basetime(vmr.time0) # Epoch
 
 		for i in range(nSensors):
-			llHdrs[7][i*5]     = '"H"'
-			llHdrs[7][i*5 + 1] = '"Offset [s]"'
-			llHdrs[7][i*5 + 2] = '"Bx [nT]"' 
-			llHdrs[7][i*5 + 3] = '"By [nT]"'
-			llHdrs[7][i*5 + 4] = '"Bz [nT]"'
+			llHdrs[8][i*5]     = '"H"'
+			llHdrs[8][i*5 + 1] = '"Offset [s]"'
+			llHdrs[8][i*5 + 2] = '"Bx [nT]"' 
+			llHdrs[8][i*5 + 3] = '"By [nT]"'
+			llHdrs[8][i*5 + 4] = '"Bz [nT]"'
 
 		# Dataset Headers: write by row
 		for j in range(len(tKeys)):

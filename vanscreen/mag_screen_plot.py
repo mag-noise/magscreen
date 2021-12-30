@@ -24,7 +24,6 @@ from matplotlib.figure import Figure
 
 from common import CustomFormatter
 import semcsv
-import semplot
 
 perr = sys.stderr.write  # shorten a long function name
 
@@ -211,6 +210,17 @@ class StrayFieldPlotter:
 	def __next__(self):
 		return self.next()
 
+	def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
+		i = np.argmax(aY)
+		oAxis.annotate(
+			"%s_max=%.1f"%(sPre, aY[i]), xy=(aX[i], aY[i]), ha='right', va='top', 
+			xycoords='data', textcoords='axes fraction', xytext=(0.98, 0.97 - 0.08*iRow),
+			fontsize=8, arrowprops={
+				"arrowstyle":"->","connectionstyle":"angle,angleA=0,angleB=60",
+				"color":sColor
+			}
+		)
+
 	def next(self):
 		"""Get the next figure"""
 		if self.iPage >= self.nPages:
@@ -219,30 +229,37 @@ class StrayFieldPlotter:
 		# Raw plot, or fit plot?
 		if self.iPage < (self.nPages - 1):
 			# Raw plot
-			fig = Figure(figsize=self.tFigSize)
+			fig = Figure(figsize=self.tFigSize) # constrained_layout=True
 
-			fig.suptitle('Part %s: Raw Time Series and Spectrum'%(self.dProps['Part'][0]))
+			fig.suptitle('Magnetic Screening Raw Data for\n%s\non %s'%(
+				self.dProps['Part'][0], self.lDs[self.iPage*3].props['Epoch'][0]
+			))
 
 			# Set X & Y axis ranges the same for all plots in a column.
 			llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
+			fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
 
 			iDs = self.iPage * 3  # To start with
 			iRow = 0
 			lColor = ['blue','orange','green']
 			lComp  = ['Bx',  'By',    'Bz']
-			while iDs < len(self.lDs):
+			while (iDs < len(self.lDs)) and (iRow < 3):
 				ds = self.lDs[iDs]
 
 				self.lDist[iDs] = float(ds.props['Distance'][0])  # Save distance
-
-				assert(ds.props['Distance'][1] == '[cm]', "Expect [cm] for distance units")
+				
+				sDistUnits = ds.props['Distance'][1]
+				if sDistUnits != '[cm]': 
+					raise ValueError("Expect [cm] for distance units, not '%s'"%sDistUnits)
 
 				axTime = llAx[iRow, 0]
 				axFreq = llAx[iRow, 1]
-				
+				axTime.grid(True)
+				axFreq.grid(True)
+
 				# Loop over components from a single sensor make time series and freq plot
 				for i in range(len(lColor)):
-					perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
+					#perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
 					aX = ds.vars['Offset'].data
 					aY = ds.vars[lComp[i]].data
 					sUnit = ds.vars[lComp[i]].units
@@ -250,8 +267,10 @@ class StrayFieldPlotter:
 					axTime.plot(
 						aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
 					)
-
-					(aX, aY) = signal.welch(ds.vars[sComp].data, scaling='spectrum')
+					
+					nSegLen = 256
+					if len(ds.vars[sComp].data) < nSegLen: nSegLen = len(ds.vars[sComp].data)
+					(aX, aY) = signal.welch(ds.vars[sComp].data, nperseg=nSegLen, scaling='spectrum')
 					aY = np.sqrt(aY)
 					
 					self.lBmax[iDs][i] = aY.max()  # Save off max value for next step
@@ -259,21 +278,27 @@ class StrayFieldPlotter:
 					axFreq.plot(
 						aX, aY, "-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
 					)
-				
-				lSensor = ds.props['Sensor'][0].split()
 
-				axTime.set_xlabel('Seconds since %s'%ds.props['Epoch'])
+					self._markMaxAmp(axFreq, aX, aY, sComp, lColor[i], i)
+
+				# Denote the sensor on the right, more room there.
+				lSensor = ds.props['Sensor'][0].split()
+				bbox = axFreq.get_position()
+				axFreq.text(bbox.xmax + 0.03, (bbox.ymin + bbox.ymax)/2,
+					'VMR %s on UART %s'%(lSensor[3], ds.props['UART'][2]),
+					horizontalalignment='center', verticalalignment='center',
+					rotation='vertical', transform=fig.transFigure
+				)
+
+				axTime.set_xlabel('Time Offset [s]')
 				axTime.set_ylabel('Magnetic Intensity [nT]')
 
+				sTitle = 'At %s %s'%(ds.props['Distance'][0],ds.props['Distance'][1])
 
-				sTitle = 'VMR %s @ %s %s on UART %s'%(lSensor[3], ds.props['Distance'][0],
-					ds.props['Distance'][1], ds.props['UART'][2])
-
-				axTime.set_title("%s: Time Series"%sTitle)
-				
+				axTime.set_title(sTitle)
 				axFreq.set_xlabel('Normalized Frequency')
-				axFreq.set_ylabel('B amplitude %s'%(ds.vars['Bx'].units))  # assume same units
-				axTime.set_title("%s: Freq. Series"%sTitle)
+				axFreq.set_ylabel('Periodic Amplitude [%s]'%(ds.vars['Bx'].units))  # assume same units
+				axFreq.set_title(sTitle)
 				
 				iDs += 1  # Next distance please
 				iRow += 1 # Plot it on next row
@@ -303,7 +328,7 @@ def screen_plot_png(dProps, lDs, sOutFile):
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir, 0o755, exist_ok=True)
 	
-	dMeta = {'Software', 'vanscreen 0.2'}
+	dMeta = {'Software': 'vanscreen 0.2'}
 	if 'Title' in dProps: dMeta['Title'] = dProps['Title'][0]
 	if 'User' in dProps: dMeta['Author'] = dProps['User'][0]
 	if 'Note' in dProps: dMeta['Description'] = dProps['Note'][0]
@@ -311,16 +336,17 @@ def screen_plot_png(dProps, lDs, sOutFile):
 		
 	for ds in lDs:
 		lSource = []
-		if 'Sensor' in ds['props']:
-			lSource.append(ds['props']['Sensor'][0])
+		if 'Sensor' in ds.props:
+			lSource.append(ds.props['Sensor'][0])
 		dMeta['Source'] = ', '.join(lSource)
 
 	i = 1
 	
 	for fig in StrayFieldPlotter(dProps, lDs):
 		canvas = backend.FigureCanvas(fig)
-		sFile = "%s.p%d.png"%(opts.sOut[:-4], i)
-		canvas.print_png(opts.sOut, metadata=dMeta)
+		sFile = "%s.p%d.png"%(sOutFile[:-4], i)
+		perr("INFO:  Writing %s\n"%sFile)
+		canvas.print_png(sFile, metadata=dMeta)
 		i += 1
 
 def screen_plot_pdf(dProps, lDs, sOutFile):
@@ -331,13 +357,14 @@ def screen_plot_pdf(dProps, lDs, sOutFile):
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir, 0o755, exist_ok=True)
 
+	perr("INFO:  Writing %s\n"%sOutFile)
 	with backend.PdfPages(sOutFile, keep_empty=False) as pdf:
 
 		for fig in StrayFieldPlotter(dProps, lDs):
 			pdf.savefig(fig)
 
 		dPdf = pdf.infodict()
-		perr('Infodict: %s\n\n'%dProps)
+		#perr('Infodict: %s\n\n'%dProps)
 		if 'Title' in dProps: dPdf['Title'] = dProps['Title'][0]
 		if 'User' in dProps: dPdf['Author'] = dProps['User'][0]
 		if 'Note' in dProps: dPdf['Subject'] = dProps['Note'][0]
@@ -391,11 +418,9 @@ def main():
 	if opts.sFmt:
 		sExt = '.'+opts.sFmt.lower()
 
-	perr("Output file is: '%s'\n"%opts.sOut)
-
 	if sExt == '.pdf':
 		screen_plot_pdf(dProps, lDs, opts.sOut)
-	elif sType == '.png':
+	elif sExt == '.png':
 		screen_plot_png(dProps, lDs, opts.sOut)
 	else:
 		perr("ERROR: Unknown output type '%s'\n"%sExt)

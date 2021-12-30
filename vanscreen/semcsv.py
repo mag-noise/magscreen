@@ -21,6 +21,7 @@ import sys
 import csv
 import re
 import math
+from collections import namedtuple
 import numpy as np
 
 perr = sys.stderr.write  # shorten a long function name
@@ -182,6 +183,11 @@ def _ds_finalize(dDs):
 	#perr('Finalize Ds Keys: %s\n'%dDs.keys())
 	#perr('Finalizse Ds Vars: %s\n'%dDs['vars'].keys())
 
+	Dataset = namedtuple('Dataset', ['props','vars'])
+	Variable = namedtuple('Variable', ['data','units'])
+
+	ds_obj = Dataset(dDs['props'], dDs['vars'])
+
 	for sVar in dDs['vars']:
 		dVar = dDs['vars'][sVar]
 		# Try to convert float (with nan for ""), if that fails leave variable data
@@ -194,8 +200,10 @@ def _ds_finalize(dDs):
 		except ValueError:
 			dVar['data'] = np.array(lStr)  # Leave as string data
 
-	dDs.pop('_var_col')
-	dDs.pop('_bounds')
+		var_obj = Variable(dVar['data'],dVar['units'])
+		ds_obj.vars[sVar] = var_obj
+
+	return ds_obj
 	
 			
 def read(sFile):
@@ -275,7 +283,7 @@ def read(sFile):
 					lSub = row[ ds['_bounds'][0] : ds['_bounds'][1] +1 ]
 					_parse_ds_cols(sFile, rdr.line_num, ds,lSub)
 
-	for ds in lDs:
-		_ds_finalize(ds)  # Convert to numpy, drop internal column tracking
+	for i in range(len(lDs)):
+		lDs[i] = _ds_finalize(lDs[i])  # Make object, Convert to numpy, drop internal column tracking
 
 	return (dProps, lDs)

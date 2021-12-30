@@ -3,16 +3,28 @@
 import argparse
 import re
 import sys
+import datetime
+import math
+import os.path
+from os.path import dirname as dname
 
 # Math stuff
 import numpy as np
+from scipy import signal
+
+
 from scipy.constants import pi
 from scipy.constants import mu_0
 from scipy.optimize import curve_fit
 import scipy.stats as stats
 
+# Plot stuff
+from matplotlib.figure import Figure
+
+
 from common import CustomFormatter
 import semcsv
+import semplot
 
 perr = sys.stderr.write  # shorten a long function name
 
@@ -167,56 +179,172 @@ def fit(x, y, z):
 	else:
 		print("-> CAUTION")
 
-
-def get_moments(collectors):
-	"""Convert the raw data stream off a Twinleaf mag sensor set into
-	a dictionary of values that contains information we care about.  Also
-	folds in the object measurements.
-	
-	args:
-		collectors: A list of Collector objects that presumably have
-					collected data from a TwinLeaf sensor. 
-	"""    
-	#data = {'DIMS':obj_dims}
-	data = {}
-	
-	for collector in collectors:
-		sId = collector.sid
-	
-		perr('Sensor %s: %d rows collected\n'%(sId, len(collector.raw_data)))
-		
-		# Cole: Make calls to fit() and the other function above here.  Then 
-		# Gather all output into a dictionary object and return it, for now
-		# I'm just outputting the raw data.  Feel free to ajdust the output 
-		# data dictionary to have whatever structure you deem suitable.
-		data[sId] = {'T':collector.times(), 'B':collector.mag_vectors()}
-	
-		T = data[sId]['T']
-		B = data[sId]['B']
-	
-		perr('%s Sensor, Row    0: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
-			sId, T[0], B[ 0,0], B[ 0,1], B[ 0,2]
-		))
-		perr('          Row    1: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
-			T[1], B[1,0], B[1,1], B[1,2]
-		))
-		perr('          Row    2: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
-			T[2], B[2,0], B[2,1], B[2,2]
-		))
-		perr('          Row %4d: %7.3f (%10.3f, %10.3f, %10.3f)\n'%(
-			len(T), T[-1], B[-1,0], B[-1,1], B[-1,2]
-		))
-		
-	perr('Data formatter not yet implemented\n')
-	return data
-
 # Data Processing #
+
 # ############################################################################ #
+# Plot figure generator #
+
+class StrayFieldPlotter:
+	"""Generate 1 - N plot pages from magnetic screening data.
+	This is a generator object intended for use in a loop.  The first N pages
+	are all the raw sensor plots.  The last one is always the fit.
+	"""
+	def __init__(self, dProps, lDs, figsize=None):
+		self.dProps = dProps
+		self.lDs = lDs
+		self.iPage = 0
+		if figsize:
+			self.tFigSize = figsize
+		else:
+			self.tFigSize = (7.5, 10) # width, height in inches
+		self.nPages = math.ceil( len(lDs) / 3)
+		
+		# If there's any raw data to plot, add a fit as the last plot
+		if self.nPages > 0: self.nPages += 1
+
+	def __iter__(self):
+		self.iPage = 0
+		self.lDist = [None]*3
+		self.lBmax = [[None]*3]*len(self.lDs)  # 1st index is distance, 2nd is component
+		return self
+
+	def __next__(self):
+		return self.next()
+
+	def next(self):
+		"""Get the next figure"""
+		if self.iPage >= self.nPages:
+			raise StopIteration()
+
+		# Raw plot, or fit plot?
+		if self.iPage < (self.nPages - 1):
+			# Raw plot
+			fig = Figure(figsize=self.tFigSize)
+
+			fig.suptitle('Part %s: Raw Time Series and Spectrum'%(self.dProps['Part'][0]))
+
+			# Set X & Y axis ranges the same for all plots in a column.
+			llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
+
+			iDs = self.iPage * 3  # To start with
+			iRow = 0
+			lColor = ['blue','orange','green']
+			lComp  = ['Bx',  'By',    'Bz']
+			while iDs < len(self.lDs):
+				ds = self.lDs[iDs]
+
+				self.lDist[iDs] = float(ds.props['Distance'][0])  # Save distance
+
+				assert(ds.props['Distance'][1] == '[cm]', "Expect [cm] for distance units")
+
+				axTime = llAx[iRow, 0]
+				axFreq = llAx[iRow, 1]
+				
+				# Loop over components from a single sensor make time series and freq plot
+				for i in range(len(lColor)):
+					perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
+					aX = ds.vars['Offset'].data
+					aY = ds.vars[lComp[i]].data
+					sUnit = ds.vars[lComp[i]].units
+					sComp = lComp[i]
+					axTime.plot(
+						aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
+					)
+
+					(aX, aY) = signal.welch(ds.vars[sComp].data, scaling='spectrum')
+					aY = np.sqrt(aY)
+					
+					self.lBmax[iDs][i] = aY.max()  # Save off max value for next step
+
+					axFreq.plot(
+						aX, aY, "-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
+					)
+				
+				lSensor = ds.props['Sensor'][0].split()
+
+				axTime.set_xlabel('Seconds since %s'%ds.props['Epoch'])
+				axTime.set_ylabel('Magnetic Intensity [nT]')
+
+
+				sTitle = 'VMR %s @ %s %s on UART %s'%(lSensor[3], ds.props['Distance'][0],
+					ds.props['Distance'][1], ds.props['UART'][2])
+
+				axTime.set_title("%s: Time Series"%sTitle)
+				
+				axFreq.set_xlabel('Normalized Frequency')
+				axFreq.set_ylabel('B amplitude %s'%(ds.vars['Bx'].units))  # assume same units
+				axTime.set_title("%s: Freq. Series"%sTitle)
+				
+				iDs += 1  # Next distance please
+				iRow += 1 # Plot it on next row
+			
+		else:
+			fig = Figure(figsize=self.tFigSize)
+			llAx = fig.subplots(nrows=2, ncols=1)
+			
+			# Todo, add this
+		self.iPage += 1
+		return fig
 
 # ########################################################################## #
-def plot_mag_psd(dProps, lDs):
-	pass
+# Plot file generators #
 
+def _to_time(sISO):
+	"""It took until python 3.7 to get ISO time string parsing... wow.  Since
+	we have to be compatable with python 3.6 just hack something up for now.
+	"""
+	return datetime.datetime(int(sISO[:4]), int(sISO[5:7]), int(sISO[8:10]))
+
+def screen_plot_png(dProps, lDs, sOutFile):
+	
+	import matplotlib.backends.backend_agg as backend
+
+	sDir = dname(sOutFile)
+	if not os.path.isdir(sDir):
+		os.makedirs(sDir, 0o755, exist_ok=True)
+	
+	dMeta = {'Software', 'vanscreen 0.2'}
+	if 'Title' in dProps: dMeta['Title'] = dProps['Title'][0]
+	if 'User' in dProps: dMeta['Author'] = dProps['User'][0]
+	if 'Note' in dProps: dMeta['Description'] = dProps['Note'][0]
+	if 'Timestamp' in dProps: dMeta['Creation Time'] = _to_time(dProps['Timestamp'][0])
+		
+	for ds in lDs:
+		lSource = []
+		if 'Sensor' in ds['props']:
+			lSource.append(ds['props']['Sensor'][0])
+		dMeta['Source'] = ', '.join(lSource)
+
+	i = 1
+	
+	for fig in StrayFieldPlotter(dProps, lDs):
+		canvas = backend.FigureCanvas(fig)
+		sFile = "%s.p%d.png"%(opts.sOut[:-4], i)
+		canvas.print_png(opts.sOut, metadata=dMeta)
+		i += 1
+
+def screen_plot_pdf(dProps, lDs, sOutFile):
+
+	import matplotlib.backends.backend_pdf as backend
+
+	sDir = dname(sOutFile)
+	if not os.path.isdir(sDir):
+		os.makedirs(sDir, 0o755, exist_ok=True)
+
+	with backend.PdfPages(sOutFile, keep_empty=False) as pdf:
+
+		for fig in StrayFieldPlotter(dProps, lDs):
+			pdf.savefig(fig)
+
+		dPdf = pdf.infodict()
+		perr('Infodict: %s\n\n'%dProps)
+		if 'Title' in dProps: dPdf['Title'] = dProps['Title'][0]
+		if 'User' in dProps: dPdf['Author'] = dProps['User'][0]
+		if 'Note' in dProps: dPdf['Subject'] = dProps['Note'][0]
+		dPdf['Keywords'] = 'Magnetic Cleanliness Stray-Field dipole raw-data'
+		if 'Timestamp' in dProps: 
+			dPdf['CreationDate'] = _to_time(dProps['Timestamp'][0])
+			dPdf['ModDate'] = datetime.datetime.today()
 
 
 # ########################################################################## #
@@ -229,11 +357,17 @@ def main():
 	'''
 	psr.epilog = 'Authors: chris-piker@uiowa.edu, cole-dorman@uiowa.edu'
 
-	psr.add_argument('-o','--out',dest='sOut',metavar='PDF_FILE',default=None,
+	psr.add_argument('-o','--out',dest='sOut',metavar='OUT_FILE',default=None,
 		help='Set a specific output filename.  An absolute path may be given '+\
 		'in which  case directories are created as needed.  By default the '+\
 		'output filename is the same as the input file with the suffix '+\
-		'changed to .pdf.'
+		'changed to .pdf'
+	)
+
+	psr.add_argument('-f','--format',dest='sFmt',metavar='FORMAT',default=None,
+		help='Instead of determining the output type by the output file extension '+\
+		"explicitly set the format.  Understood values are 'png' and 'pdf', "+\
+		"(without the quotes)."
 	)
 
 	psr.add_argument("sIn", metavar="CSV_FILE", help="The input filename. Should be a CSV file.")
@@ -244,15 +378,27 @@ def main():
 		perr("ERROR: Expected a csv file for input")
 
 	if not opts.sOut: 
-		opts.sOut = re.sub(r'\.csv', r'\.pdf', opts.sIn, flags=re.IGNORECASE)
+		opts.sOut = re.sub(r'.csv', r'.pdf', opts.sIn, flags=re.IGNORECASE)
 
 	(dProps, lDs) = semcsv.read(opts.sIn)
 
 	perr('INFO:  Loaded %d global props, %d datasets, and %d variables from %s\n'%(
-		len(dProps), len(lDs), sum( [len(ds['vars']) for ds in lDs]), opts.sIn
+		len(dProps), len(lDs), sum( [len(ds.vars) for ds in lDs]), opts.sIn
 	))
+	
+	sExt = opts.sOut.lower()[-4:]
 
-	fig = plot_mag_psd(dProps, lDs)
+	if opts.sFmt:
+		sExt = '.'+opts.sFmt.lower()
+
+	perr("Output file is: '%s'\n"%opts.sOut)
+
+	if sExt == '.pdf':
+		screen_plot_pdf(dProps, lDs, opts.sOut)
+	elif sType == '.png':
+		screen_plot_png(dProps, lDs, opts.sOut)
+	else:
+		perr("ERROR: Unknown output type '%s'\n"%sExt)
 
 	return 0
 

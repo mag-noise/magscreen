@@ -1,7 +1,7 @@
 "G","Title","Magnetic Screening Test, Raw Data",,,,,,,,,,,,
 ,,,,,,,,,,,,,,
 "G","Host","puter",,,,,,,,,,,,
-"G","Part","doggy",,,,,,,,,,,,
+"G","Part","screwdriver",,,,,,,,,,,,
 "G","Timestamp","2021-12-22T12:37:09-0600",,,,,,,,,,,,
 "G","User","Chris",,,,,,,,,,,,
 "G","Version","vanscreen-0.2",,,,,,,,,,,,
@@ -11,7 +11,8 @@
 "P","Sensor","Twinleaf VMR R12 N179 [2021-08-30/065a10]",,,"P","Sensor","Twinleaf VMR R12 N201 [2021-03-16/c7c589]",,,"P","Sensor","Twinleaf VMR R12 N161 [2021-08-30/065a10]",,
 "P","UART","0x0403","0x6015","DT04H6OF","P","UART","0x0403","0x6015","DT04H6OX","P","UART","0x0403","0x6015","DT04H6NY"
 "P","Port","COM3",,,"P","Port","COM4",,,"P","Port","COM5",,
-"P","Distance",10.00,"[cm]",,"P","Distance",10.00,"[cm]",,"P","Distance",10.00,"[cm]",
+"P","Distance",9.00,"[cm]",,"P","Distance",10.00,"[cm]",,"P","Distance",14.00,"[cm]",
+"P","Offset_cm",1.025,0.0,0.475,"P","Offset_cm",1.025,0.0,0.475,"P","Offset_cm",1.025,0.0,0.475
 "P","Epoch","2021-12-22 12:36:47.096-0600",,,"P","Epoch","2021-12-22 12:36:47.096-0600",,,"P","Epoch","2021-12-22 12:36:47.096-0600",,
 ,,,,,,,,,,,,,,
 "H","Offset [s]","Bx [nT]","By [nT]","Bz [nT]","H","Offset [s]","Bx [nT]","By [nT]","Bz [nT]","H","Offset [s]","Bx [nT]","By [nT]","Bz [nT]"

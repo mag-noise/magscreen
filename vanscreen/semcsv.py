@@ -73,6 +73,9 @@ perr = sys.stderr.write  # shorten a long function name
 
 import csv
 
+Dataset = namedtuple('Dataset', ['props','vars'])
+Variable = namedtuple('Variable', ['data','units'])
+
 class ParseError(Exception):
 	def __init__(self, sFile, nLine, sMsg):
 		super().__init__(sMsg)
@@ -182,9 +185,6 @@ def _ds_finalize(dDs):
 
 	#perr('Finalize Ds Keys: %s\n'%dDs.keys())
 	#perr('Finalizse Ds Vars: %s\n'%dDs['vars'].keys())
-
-	Dataset = namedtuple('Dataset', ['props','vars'])
-	Variable = namedtuple('Variable', ['data','units'])
 
 	ds_obj = Dataset(dDs['props'], dDs['vars'])
 

@@ -8,16 +8,6 @@ import math
 import os.path
 from os.path import dirname as dname
 
-# Math stuff
-import numpy as np
-from scipy import signal
-
-
-from scipy.constants import pi
-from scipy.constants import mu_0
-from scipy.optimize import curve_fit
-import scipy.stats as stats
-
 # Plot stuff
 from matplotlib.figure import Figure
 
@@ -181,6 +171,143 @@ def fit(x, y, z):
 # Data Processing #
 
 # ############################################################################ #
+# Raw Data plots #
+
+def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
+	"""Helper for raw_plot8, mark the max amplitude values
+
+	Try to be smart about axis angles, if the Y point is above my text then use
+	an up angle, otherwise a down angle.  This is not a good general function,
+	it assumes the max value is on the right side of the plot.  Okay for mag
+	screening, not so good otherwise.
+	"""
+
+	j = np.argmax(aY)
+	axis_to_data = oAxis.transAxes + oAxis.transData.inverted()
+	data_to_axis = axis_to_data.inverted()
+	lMaxPos = data_to_axis.transform((aX[j],aY[j]))
+	rTextPos = 0.97 - 0.08*iRow
+	if lMaxPos[1] > rTextPos: nAngleB = -60
+	else: nAngleB = 60
+	oAxis.annotate(
+		"%s_max=%.1f"%(sPre, aY[j]), xy=(aX[j], aY[j]), ha='right', va='top', 
+		xycoords='data', textcoords='axes fraction', xytext=(0.98, rTextPos),
+		fontsize=8, arrowprops={
+			"arrowstyle":"->","connectionstyle":"angle,angleA=0,angleB=%d"%nAngleB,
+			"color":sColor
+		}
+	)
+
+
+def raw_plot3(lDs, dProps):
+	"""Plot the raw data from up to three different mag screening datasets
+	(one from each sensor)
+
+	Args:
+		lDs ( list(semcsv.Dataset) ): A list of datasets to plot.  The first 
+			three of theses will be included in the returned fig.
+
+		dProps ( dict(value list)): Global properties that apply to all given
+			datasets
+
+	Returns: figure
+		A matplotlib figure object, that contains up to 6 subplots.  Suitable
+		for output as a pdf or png.  
+	"""
+
+	fig = Figure(figsize=self.tFigSize)
+
+	# Set X & Y axis ranges the same for all plots in a column.
+	llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
+	fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
+
+	fig.suptitle('Magnetic Screening Raw Data for\n%s\non %s'%(
+		dProps['Part'][0], dProps['Epoch'][0]
+	))
+
+	if len(lDs) == 0:  # Should I just return none here?
+		return fig
+
+	iDs = 0
+	iRow = 0
+	lColor = ['blue','orange','green']
+	lComp  = ['Bx',  'By',    'Bz']
+	while (iDs < len(lDs)) and (iRow < 3):
+		ds = lDs[iDs]
+
+		float(ds.props['Distance'][0])  # Save distance
+				
+		sDistUnits = ds.props['Distance'][1]
+		if sDistUnits != '[cm]': 
+			raise ValueError("Expect [cm] for distance units, not '%s'"%sDistUnits)
+
+		axTime = llAx[iRow, 0]
+		axFreq = llAx[iRow, 1]
+		axTime.grid(True)
+		axFreq.grid(True)
+
+		# Loop over components from a single sensor make time series and freq plot
+		# Save the frequency data for later annotation.  We need to plot everything
+		# first or the plot limits are not determined!
+		lXf = [None]*3
+		lYf = [None]*3
+		for i in range(3):
+			#perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
+			aX = ds.vars['Offset'].data
+			aY = ds.vars[lComp[i]].data
+			sUnit = ds.vars[lComp[i]].units
+			sComp = lComp[i]
+			axTime.plot(
+				aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
+			)
+					
+			(aXf, aYf) = relative_spectrum(ds.vars[sComp])
+					
+			axFreq.plot(aXf, aYf, 
+				"-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
+			)
+			lXf[i] = aXf
+			lYf[i] = aYf
+				
+		for i in range(3):
+			_markMaxAmp(axFreq, lXf[i], lYf[i], lComp[i], lColor[i], i)
+
+		# Denote the sensor on the right, more room there.
+		lSensor = ds.props['Sensor'][0].split()
+		bbox = axFreq.get_position()
+		axFreq.text(bbox.xmax + 0.03, (bbox.ymin + bbox.ymax)/2,
+			'VMR %s on UART %s'%(lSensor[3], ds.props['UART'][2]),
+			horizontalalignment='center', verticalalignment='center',
+			rotation='vertical', transform=fig.transFigure, fontsize=9
+		)
+
+		axTime.set_xlabel('Time Offset [s]')
+		axTime.set_ylabel('Magnetic Intensity [nT]')
+
+		sTitle = 'At %s %s'%(ds.props['Distance'][0],ds.props['Distance'][1])
+
+		axTime.set_title(sTitle)
+		axFreq.set_xlabel('Normalized Frequency')
+		axFreq.set_ylabel('Periodic Amplitude [%s]'%(ds.vars['Bx'].units))  # assume same units
+		axFreq.set_title(sTitle)
+
+		# Now for the ledgend
+		
+		iDs += 1  # Next distance please
+		iRow += 1 # Plot it on next row
+
+	return fig
+
+# ############################################################################ #
+# Stray field plot #
+
+def stray_field_plot(dProps, lDs):
+
+	fig = Figure(figsize=self.tFigSize)
+	llAx = fig.subplots(nrows=2, ncols=1)
+
+
+# ############################################################################ #
 # Plot figure generator #
 
 class StrayFieldPlotter:
@@ -203,39 +330,10 @@ class StrayFieldPlotter:
 
 	def __iter__(self):
 		self.iPage = 0
-		self.lDist = [None]*3
-		self.lBmax = [[None]*3]*len(self.lDs)  # 1st index is distance, 2nd is component
 		return self
 
 	def __next__(self):
 		return self.next()
-
-	def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
-		""" Try to be smart about axis angles, if the Y point is above my 
-		text then use an up angle, otherwise a down angle.
-
-		This is not a good general function, it assumes the max value 
-		is on the right side of the plot.  Okay for mag screening, not
-		so good otherwise
-		"""
-		j = np.argmax(aY)
-
-		axis_to_data = oAxis.transAxes + oAxis.transData.inverted()
-		data_to_axis = axis_to_data.inverted()
-
-		lMaxPos = data_to_axis.transform((aX[j],aY[j]))
-		rTextPos = 0.97 - 0.08*iRow
-		if lMaxPos[1] > rTextPos: nAngleB = -60
-		else: nAngleB = 60
-
-		oAxis.annotate(
-			"%s_max=%.1f"%(sPre, aY[j]), xy=(aX[j], aY[j]), ha='right', va='top', 
-			xycoords='data', textcoords='axes fraction', xytext=(0.98, rTextPos),
-			fontsize=8, arrowprops={
-				"arrowstyle":"->","connectionstyle":"angle,angleA=0,angleB=%d"%nAngleB,
-				"color":sColor
-			}
-		)
 
 	def next(self):
 		"""Get the next figure"""
@@ -244,95 +342,10 @@ class StrayFieldPlotter:
 
 		# Raw plot, or fit plot?
 		if self.iPage < (self.nPages - 1):
-			# Raw plot
-			fig = Figure(figsize=self.tFigSize) # constrained_layout=True
-
-			fig.suptitle('Magnetic Screening Raw Data for\n%s\non %s'%(
-				self.dProps['Part'][0], self.lDs[self.iPage*3].props['Epoch'][0]
-			))
-
-			# Set X & Y axis ranges the same for all plots in a column.
-			llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
-			fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
-
-			iDs = self.iPage * 3  # To start with
-			iRow = 0
-			lColor = ['blue','orange','green']
-			lComp  = ['Bx',  'By',    'Bz']
-			while (iDs < len(self.lDs)) and (iRow < 3):
-				ds = self.lDs[iDs]
-
-				self.lDist[iDs] = float(ds.props['Distance'][0])  # Save distance
-				
-				sDistUnits = ds.props['Distance'][1]
-				if sDistUnits != '[cm]': 
-					raise ValueError("Expect [cm] for distance units, not '%s'"%sDistUnits)
-
-				axTime = llAx[iRow, 0]
-				axFreq = llAx[iRow, 1]
-				axTime.grid(True)
-				axFreq.grid(True)
-
-				# Loop over components from a single sensor make time series and freq plot
-				# Save the frequency data for later annotation.  We need to plot everything
-				# first or the plot limits are not determined!
-				lXf = [None]*3
-				lYf = [None]*3
-				for i in range(3):
-					#perr("plot dist: %s, component: %s\n"%(self.lDist[iDs], lComp[i]))
-					aX = ds.vars['Offset'].data
-					aY = ds.vars[lComp[i]].data
-					sUnit = ds.vars[lComp[i]].units
-					sComp = lComp[i]
-					axTime.plot(
-						aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
-					)
-					
-					nSegLen = 256
-					if len(ds.vars[sComp].data) < nSegLen: nSegLen = len(ds.vars[sComp].data)
-					(aXf, aYf) = signal.welch(ds.vars[sComp].data, nperseg=nSegLen, scaling='spectrum')
-					aYf = np.sqrt(aYf)
-					
-					self.lBmax[iDs][i] = aYf.max()  # Save off max value for next step
-					
-					axFreq.plot(aXf, aYf, 
-						"-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
-					)
-					lXf[i] = aXf
-					lYf[i] = aYf
-				
-				for i in range(3):
-					self._markMaxAmp(axFreq, lXf[i], lYf[i], lComp[i], lColor[i], i)
-
-				# Denote the sensor on the right, more room there.
-				lSensor = ds.props['Sensor'][0].split()
-				bbox = axFreq.get_position()
-				axFreq.text(bbox.xmax + 0.03, (bbox.ymin + bbox.ymax)/2,
-					'VMR %s on UART %s'%(lSensor[3], ds.props['UART'][2]),
-					horizontalalignment='center', verticalalignment='center',
-					rotation='vertical', transform=fig.transFigure
-				)
-
-				axTime.set_xlabel('Time Offset [s]')
-				axTime.set_ylabel('Magnetic Intensity [nT]')
-
-				sTitle = 'At %s %s'%(ds.props['Distance'][0],ds.props['Distance'][1])
-
-				axTime.set_title(sTitle)
-				axFreq.set_xlabel('Normalized Frequency')
-				axFreq.set_ylabel('Periodic Amplitude [%s]'%(ds.vars['Bx'].units))  # assume same units
-				axFreq.set_title(sTitle)
-
-				# Now for the ledgend
-				
-				iDs += 1  # Next distance please
-				iRow += 1 # Plot it on next row
-			
+			fig = raw_plot3(dProps, lDs[self.iPage*3 : self.iPage*3+3])
 		else:
-			fig = Figure(figsize=self.tFigSize)
-			llAx = fig.subplots(nrows=2, ncols=1)
+			fig = stray_field(self.dProps, self.lDs)
 			
-			# Todo, add this
 		self.iPage += 1
 		return fig
 

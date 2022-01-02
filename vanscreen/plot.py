@@ -7,20 +7,22 @@ import datetime
 import math
 import os.path
 from os.path import dirname as dname
+import numpy as np
 
 # Plot stuff
 from matplotlib.figure import Figure
 
-
+# Our stuff
 from common import CustomFormatter
 import semcsv
+import calc
 
 perr = sys.stderr.write  # shorten a long function name
 
 # ############################################################################ #
 # Raw Data plots #
 
-def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
+def _markMaxAmp(oAxis, aX, aY, sPre, sColor, iRow):
 	"""Helper for raw_plot8, mark the max amplitude values
 
 	Try to be smart about axis angles, if the Y point is above my text then use
@@ -45,7 +47,7 @@ def _markMaxAmp(self, oAxis, aX, aY, sPre, sColor, iRow):
 	)
 
 
-def raw_plot3(lDs, dProps, tFigSz=(7.5, 10)):
+def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 	"""Plot the raw data from up to three different mag screening datasets
 	(one from each sensor)
 
@@ -69,7 +71,7 @@ def raw_plot3(lDs, dProps, tFigSz=(7.5, 10)):
 	fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
 
 	fig.suptitle('Magnetic Screening Raw Data for\n%s\non %s'%(
-		dProps['Part'][0], dProps['Epoch'][0]
+		dProps['Part'][0], dProps['Timestamp'][0]
 	))
 
 	if len(lDs) == 0:  # Should I just return none here?
@@ -108,7 +110,7 @@ def raw_plot3(lDs, dProps, tFigSz=(7.5, 10)):
 				aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
 			)
 					
-			(aXf, aYf) = relative_spectrum(ds.vars[sComp])
+			(aXf, aYf) = calc.relative_spectrum(ds.vars[sComp].data)
 					
 			axFreq.plot(aXf, aYf, 
 				"-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
@@ -163,10 +165,14 @@ def stray_field_plot(dProps, lDs, tFigSz=(7.5, 5)):
 	fig = Figure(figsize=tFigSz)
 	(axDist) = fig.subplots()
 
-	(dist, Bmax, Bfit, Berr, Bstray, BstaryErr) = stray_field(lDs)
+	(aDist, aRotRate, aBmax, rMoment, rMomErr) = calc.dipole_from_rotation(lDs)
 
-	axDist.plot(dist*100, Bmax*1e9, 'bo', label='Maximum Dipole Field')
-	axDist.plot(dist*100, Bfit*1.9, 'r-', label='Best Fit')
+	# Using the fitted moment value, provide the field magnitude at 1 meter.
+	Bstray_T    = calc.bmag_from_moment(1, rMoment)
+	BstrayErr_T = 0.5 * calc.bmag_from_moment(1, rMomErr)
+
+	axDist.plot(aDist*100, aBmax*1e9, 'bo', label='Maximum Dipole Field')
+	axDist.plot(aDist*100, aBfit*1.9, 'r-', label='Best Fit')
 	axDist.set_title(
 		'Magnetic Screening Dipole Field\n%s\non %s'%(
 		dProps['Part'][0], dProps['Epoch'][0]
@@ -201,7 +207,7 @@ def stray_field_plot(dProps, lDs, tFigSz=(7.5, 5)):
 # ############################################################################ #
 # Plot figure generator #
 
-class StrayFieldPlotter:
+class Plotter:
 	"""Generate 1 - N plot pages from magnetic screening data.
 	This is a generator object intended for use in a loop.  The first N pages
 	are all the raw sensor plots.  The last one is always the fit.
@@ -233,9 +239,9 @@ class StrayFieldPlotter:
 
 		# Raw plot, or fit plot?
 		if self.iPage < (self.nPages - 1):
-			fig = raw_plot3(dProps, lDs[self.iPage*3 : self.iPage*3+3])
+			fig = raw_plot3(self.dProps, self.lDs[self.iPage*3 : self.iPage*3+3])
 		else:
-			fig = stray_field(self.dProps, self.lDs)
+			fig = calc.stray_field(self.lDs)
 			
 		self.iPage += 1
 		return fig
@@ -271,7 +277,7 @@ def screen_plot_png(dProps, lDs, sOutFile):
 
 	i = 1
 	
-	for fig in StrayFieldPlotter(dProps, lDs):
+	for fig in Plotter(dProps, lDs):
 		canvas = backend.FigureCanvas(fig)
 		sFile = "%s.p%d.png"%(sOutFile[:-4], i)
 		perr("INFO:  Writing %s\n"%sFile)
@@ -289,7 +295,7 @@ def screen_plot_pdf(dProps, lDs, sOutFile):
 	perr("INFO:  Writing %s\n"%sOutFile)
 	with backend.PdfPages(sOutFile, keep_empty=False) as pdf:
 
-		for fig in StrayFieldPlotter(dProps, lDs):
+		for fig in Plotter(dProps, lDs):
 			pdf.savefig(fig)
 
 		dPdf = pdf.infodict()

@@ -62,6 +62,17 @@ def _test_properties(sPart, sComments=None):
 	if sComments: d['Note'] = sComments.replace('"',"'")
 	return d	
 
+
+def test_summary(sOutFile, dProps, lDatasets):
+
+	# Now for the roll-up information...
+	(aDist, aRotRate, aBmax, rMoment, rMomErr) = calc.dipole_from_rotation(lDatasets)
+	
+	(rStray, rStrayErr) = calc.stray_field(1, rMoment, rMomErr)
+	
+	
+
+
 # ############################################################################ #
 
 def main():
@@ -217,16 +228,11 @@ def main():
 	write_mag_vecs(sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.msg))
 
 	# Plot time series and PSD of the raw data, as a cross check
-	dData = semcsv.reader(sFile)
-	write_mag_psd(dData)
-
-	# Now for the roll-up information...
+	(dProps, lDatasets) = semcsv.read(sFile)
+	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
 	
-	# Parse raw data from the collectors into meaningful measurments
-	data = get_moments(g_lCollectors)
-	
-	# Output what we got
-	write_pdf(opts.PART, opts.out_dir, data)
+	# Open the roll-up info file (or create one if it doesn't exist)
+	test_summary("summary.csv", dProps, lDatasets)
 	
 	return 0  # An all-okay return value
 	

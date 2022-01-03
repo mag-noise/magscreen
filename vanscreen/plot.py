@@ -8,6 +8,8 @@ import math
 import os.path
 from os.path import dirname as dname
 import numpy as np
+import scipy.stats as stats
+from scipy.constants import pi
 
 # Plot stuff
 from matplotlib.figure import Figure
@@ -70,7 +72,7 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 	llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
 	fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
 
-	fig.suptitle('Magnetic Screening Raw Data for\n%s\non %s'%(
+	fig.suptitle('Mag Screen Raw Data for:\n%s\non %s'%(
 		dProps['Part'][0], dProps['Timestamp'][0]
 	))
 
@@ -110,7 +112,7 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 				aX, aY, "-", label="%s [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
 			)
 					
-			(aXf, aYf) = calc.relative_spectrum(ds.vars[sComp].data)
+			(aXf, aYf) = calc.spectrum(float(ds.props['Rate'][0]), ds.vars[sComp])
 					
 			axFreq.plot(aXf, aYf, 
 				"-", label="%s Spectra [%s]"%(sComp, sUnit), color="tab:%s"%lColor[i]
@@ -136,7 +138,7 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 		sTitle = 'At %s %s'%(ds.props['Distance'][0],ds.props['Distance'][1])
 
 		axTime.set_title(sTitle)
-		axFreq.set_xlabel('Normalized Frequency')
+		axFreq.set_xlabel('Frequency [Hz]')
 		axFreq.set_ylabel('Periodic Amplitude [%s]'%(ds.vars['Bx'].units))  # assume same units
 		axFreq.set_title(sTitle)
 
@@ -150,7 +152,7 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 # ############################################################################ #
 # Stray field plot #
 
-def stray_field_plot(dProps, lDs, tFigSz=(7.5, 5)):
+def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	"""Calculate and plot the expected stray field at 1-meter
 
 	Args:
@@ -163,44 +165,70 @@ def stray_field_plot(dProps, lDs, tFigSz=(7.5, 5)):
 	"""
 
 	fig = Figure(figsize=tFigSz)
-	(axDist) = fig.subplots()
+	axDipole = fig.add_axes((0.15, 0.5, 0.75, 0.4))
 
-	(aDist, aRotRate, aBmax, rMoment, rMomErr) = calc.dipole_from_rotation(lDs)
+	(dist, rate, Zangle, Bdipole, moment, merror) = calc.dipole_from_rotation(lDs)
 
 	# Using the fitted moment value, provide the field magnitude at 1 meter.
-	Bstray_T    = calc.bmag_from_moment(1, rMoment)
-	BstrayErr_T = 0.5 * calc.bmag_from_moment(1, rMomErr)
+	Bstray_T    = calc.bmag_from_moment(1, moment)
+	BstrayErr_T = 0.5 * calc.bmag_from_moment(1, merror)
 
-	axDist.plot(aDist*100, aBmax*1e9, 'bo', label='Maximum Dipole Field')
-	axDist.plot(aDist*100, aBfit*1.9, 'r-', label='Best Fit')
-	axDist.set_title(
+	aFitDist = np.linspace(dist[0], dist[-1], num=30)
+	aFitPts = calc.bmag_from_moment(aFitDist,moment)
+
+	axDipole.plot(dist*100, Bdipole*1e9, 'bo',      label='Calculated Dipole')
+	axDipole.plot(aFitDist*100, aFitPts*1e9, 'r-', label='Best Fit Dipole')
+	axDipole.set_title(
 		'Magnetic Screening Dipole Field\n%s\non %s'%(
-		dProps['Part'][0], dProps['Epoch'][0]
+		dProps['Part'][0], dProps['Timestamp'][0]
 	))
+	axDipole.grid(True)
 
-	axDist.set_xlabel('Distance [cm]')
-	axDist.set_ylable('Dipole Magnitude [nT]')
-	axDist.legend()
+	axDipole.set_xlabel('Sensor Distance [cm]')
+	axDipole.set_ylabel('Axial Dipole Magnitude [nT]')
+
+	(Bstray, BstrayErr, iStatus) = calc.stray_field_1m(moment, merror)
+
+	axDipole.set_title(
+		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],calc.status_text[iStatus])
+	)
+	axDipole.legend()
 
 	# Calculate a couple other items put them on the plot
-	(chi_sq, p_val) = stats.chisquare(f_obs=Bmax, f_exp=Bfit)
+	# FIXME: Values look suspicious
+	#(chi_sq, p_val) = stats.chisquare(
+	#	f_obs=Bdipole, f_exp=calc.bmag_from_moment(dist,moment)
+	#)
+
 
 	lNotes = [
-		'chi-squared = %0.3f'%chi_sq, 'p-value = %0.3f'%p_val,
-		'Dipole Moment = %.5f [N m T^-1]',
-		'Stray Field @ 1m = %04f nT'%(Bstray*1e9)
+		'Timstamp:            %s'%(dProps['Timestamp'][0]),
+		#'chi-squared = %0.3f'%chi_sq, 'p-value = %0.3f'%p_val,
+		'Dipole Moment:    %.2e ± %0.2e [N m T^-1]'%(moment, merror),
+		'Stray Field @ 1m: %0.2e ± %0.2e [nT]'%(Bstray*1e9, BstrayErr*1e9)
 	]
 
-	if (Bfit + Berr) > 0.05:
-		lNotes.append("Part FAIL")
-	elif (Bfit + Berr) < (0.95 * 0.05):
-		lNotes.append("Part PASS")
-	else:
-		lNote.append("Part CAUTION")
-
-	axDist.text(0.95, 0.95, '\n'.join(lNotes), ha='right', va='top', 
-		transform=axDist.transAxes
+	bbox = axDipole.get_position()
+	axDipole.text(bbox.xmin, bbox.ymin - 0.1, '\n'.join(lNotes),
+		horizontalalignment='left', verticalalignment='center',
+		transform=fig.transFigure, fontsize=10
 	)
+
+	axRate = fig.add_axes((0.15, 0.1, 0.3, 0.2))
+
+	axRate.plot(dist*100, rate/2.0, 'o')
+	axRate.set_title('1/2 Peak Field Variation Rate\n(Object Rotation Rate)', fontsize=8)
+	axRate.set_ylabel('[Hz]', fontsize=8)
+	axRate.set_xlabel('Sensor Distance [cm]', fontsize=8)
+	axRate.grid(True)
+
+	axAngle = fig.add_axes((0.6, 0.1, 0.3, 0.2), ylim=(0,180))
+
+	axAngle.plot(dist*100, Zangle*180/pi, 'go')
+	axAngle.set_title('Angle between dipole axis and Z axis', fontsize=8)
+	axAngle.set_ylabel('[degrees]', fontsize=8)
+	axAngle.set_xlabel('Sensor Distance [cm]', fontsize=8)
+	axAngle.grid(True)
 
 	return fig
 
@@ -241,7 +269,7 @@ class Plotter:
 		if self.iPage < (self.nPages - 1):
 			fig = raw_plot3(self.dProps, self.lDs[self.iPage*3 : self.iPage*3+3])
 		else:
-			fig = calc.stray_field(self.lDs)
+			fig = dipole_plot(self.dProps, self.lDs)
 			
 		self.iPage += 1
 		return fig
@@ -276,7 +304,6 @@ def screen_plot_png(dProps, lDs, sOutFile):
 		dMeta['Source'] = ', '.join(lSource)
 
 	i = 1
-	
 	for fig in Plotter(dProps, lDs):
 		canvas = backend.FigureCanvas(fig)
 		sFile = "%s.p%d.png"%(sOutFile[:-4], i)

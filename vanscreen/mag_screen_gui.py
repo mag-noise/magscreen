@@ -49,7 +49,7 @@ def ratio(magnetometer_distance, distance):
 
 def rms(x, y, z):
     """root mean squared function, eventually used to find magnitude of B"""
-    return np.sqrt(x**2 + y**2 + z**2)
+    return np.sqrt(x**2 + y**2 + z**2)  #FIX me: this is magnitude, not RMS!
 
 def angle(vector, B1, B2, B3):
     """function finding angle from dot product of vectors"""

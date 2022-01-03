@@ -7,12 +7,13 @@ from scipy import signal
 from scipy.constants import pi
 from scipy.constants import mu_0
 from scipy.optimize import curve_fit
-import scipy.stats as stats
+
+import semcsv
 
 
 perr = sys.stderr.write  # shorten a long function name
 
-def relative_spectrum(ary):
+def spectrum(vTime, vData):
 	"""Get the spectrum of a signal, ignoring the sampling period.
 	
 	Side Note: Though we don't return real frequency values we probably
@@ -21,21 +22,56 @@ def relative_spectrum(ary):
 	  field.
 
 	Args:
-		ary (array[float]): A 1-D array over values collected at a constant rate.
+	vTime (float, indexable, or semcsv.Variable)
+		Either a real number representing the sampling frequency, or a 
+		Variable object with the sample times
+
+	vData (ndarray, indexable, or semcsv.Variable)
+		The time series data from which the PSD should be derived.
 
 	Returns: (frequencies, amplitudes)
 		frequencies - An array of values containing frequency components as if
 			the sampling period was 1 Hz.
 
-		amplitues - An array of values containing the square root of the power
+		amplitudes - An array of values containing the square root of the power
 	"""
+	if isinstance(vTime, (float, int)):
+		rFreq = vTime
+	else:
+		if isinstance(vTime, semcsv.Variable):
+			if vTime.units != 's':
+				raise ValueError("Unit conversion from %s to seconds is not implemented."%vTime.units)
+			vTime = vTime.data		
+		
+		# Assume it's a iterable of some sort
+		N = len(vTime)
+		rPeriod = (vTime[-1] - vTime[0]) / (N - 1)
+
+		# Check for missing points, individual samples must be within 0.25
+		# average sampling periods
+		rHi = rPeriod * 1.25
+		rLo = rPeriod * 0.75
+		for i in range(len(vTime)-1):
+			rDiff = (vTime[i+1] - vTime[i])
+			if (rDiff < 0) or (rLo >= rDiff) or (rDiff >= rHi):
+				raise ValueError(
+					"Sampling period for point %d is %.2e, expected %.2e to %.2e"%(
+					i+1, rDiff, rLo, rHi
+				))
+
+		rFreq = 1/rPeriod
+
+	if isinstance(vData, semcsv.Variable):
+		vData = vData.data
+		
 	nSegLen = 256
-	if len(ary) < nSegLen: nSegLen = len(ary)
-	(aXf, aYf) = signal.welch(ary, nperseg=nSegLen, scaling='spectrum')
+	if len(vData) < nSegLen: nSegLen = len(vData)
+	(aXf, aYf) = signal.welch(vData, rFreq, nperseg=nSegLen, scaling='spectrum')
 	aYf = np.sqrt(aYf)
 
 	return (aXf, aYf)
 
+# ########################################################################## #
 
 def moment_from_bvec(r_meters, mag_Tesla, angle):
 	"""Determine the magnetic dipole moment of an object give a measurement of
@@ -122,8 +158,12 @@ def _dipole_adjust(reading, reference, offset):
 
 	(Function called "ratio" in old sources )
 	"""
-
-	return reading * ( (reference + offset)**3 / reference**3 )
+	adj = reading * ( (reference + offset)**3 / reference**3 )
+	
+	#perr("Input Reading %s, ref %s, offset %s, output reading %s\n"%(
+	#		reading, reference, offset, adj)
+	#)
+	return adj
 
 
 def bmag_from_moment(distance, moment):
@@ -135,20 +175,19 @@ def bmag_from_moment(distance, moment):
 	values closest to the data.
 
 	Args:
-		distance (float): The distance from the dipole source center in [m].
+		distance (array): The distance from the dipole source center in [m].
 			Fixme: is this distance assumed in a plane perpendicular to the
 			dipole moment vector?
 
-		moment (float): The moment in [N m T**-1] 
+		moment (array): The moment in [N m T**-1] 
 
-	Returns:
+	Returns (array):
 		The field magnitude at the given distance in units of Tesla
 
 	Fixme: How is an angle not involved here?  Does this assume a moment in 
 	       the Z axis and the distance is in the x-y plane?
 	"""
 	return ((mu_0 * moment) / (2*pi * distance**3))
-
 
 
 def dipole_from_rotation(lDsRaw):
@@ -180,23 +219,32 @@ def dipole_from_rotation(lDsRaw):
 		More datasets are preferred, but a least two are required.
 
 	Returns:
-		(aDist, aBmax, rMoment, aBerr, Bstray, BstrayErr)
+		(dist, rate, Zangle, Bdipole, moment, merror)
 
-		aDist [m]:           Original sensor distance poisitions
-		aRate [Hz]:          The measured rotation rate of the object at each distance
-		aBmax [T]:           The dipole component only field values at each distance
-		rMoment [N m T**-1]: The calculated dipole moment
-		rMomErr [N n T**-1]: The estimated error in the dipole moment calculation
+		dist [m]:     Array of sensor distances from center of object
+		rate [Hz]:    Array of rotation rates at each sensor (should be constant)
+		Zangle [rad]: Array of angles from dipole axis to zaxis at each distance
+		Bdipole [T]:  Array of dipole component field values at each distance
+
+		moment [N m T**-1]: The calculated dipole moment (scalar)
+		merror [N n T**-1]: The estimated error in the dipole moment calculation (scalar)
 
 	Note: If the measured rotation rate is far from the know value then 
 		   the assumptions built into this calculation may not be correct.
 	"""
+
+	iX = 0
+	iY = 1
+	iZ = 2
+	tComp = ('Bx','By','Bz')
 
 	# 1. Since the object is rotating in the earths magnetic field, find out 
 	#    how much it changes the field using by calculationg the magnetic 
 	#    sepectral density.
 
 	lDist   = []  # Distance to the center of the object in [m]
+	lRate = []
+	lZangle = []
 	lDipole = []  # Dipole in units of [N m T**-1]
 
 	for dataset in lDsRaw:
@@ -207,14 +255,27 @@ def dipole_from_rotation(lDsRaw):
 			(len(dataset.vars['Offset']) != len(dataset.vars['Bx'])): 
 			raise ValueError("Component arrays are not the same length")
 
+		lFreq = [None]*3
+		lAmp = [None]*3
 
-		(freq_X, amp_X) = relative_spectrum(dataset.vars['Bx'].data)
-		(freq_Y, amp_Y) = relative_spectrum(dataset.vars['By'].data)
-		(freq_Z, amp_Z) = relative_spectrum(dataset.vars['Bz'].data)
+		for i in range(3):
+			(lFreq[i], lAmp[i]) = spectrum(
+				float(dataset.props['Rate'][0]), dataset.vars[tComp[i]]
+			)
 
-		# Get the sampling frequency
-		rSampFreq = _getFreqHz(dataset.vars['Offset'].data, dataset.vars['Offset'].units)
+		lMax = [ np.argmax(amp) for amp in lAmp ]
+		
+		# Check to see than all maximums fall on the same (or adjacent) freq. bin
+		for i in range(2):
+			if abs(lMax[i+1] - lMax[0]) > 1:
+				lWarn.append("%s max amplitude at %0.3f Hz, %s max amplitude at %0.3f Hz. %s"%(
+					dataset.props['UART'][0], freq_X, dataset.props['UART'][i+1], freq_Y,
+					"Are you in the near field?"
+				))
+				break
 
+		lRate.append( (lFreq[0][lMax[0]] + lFreq[1][lMax[1]] + lFreq[2][lMax[2]])/3.0 )
+		
 		rDist_m = float(dataset.props['Distance'][0]) * 0.01
 		if dataset.props['Distance'][1] != '[cm]':
 			raise ValueError(
@@ -224,14 +285,12 @@ def dipole_from_rotation(lDsRaw):
 
 		# Normalize B components to front face of sensor, since we can measure
 		# that in the real world with a ruler.
-		lOffset_m = [ float(sItem) for sItem in dataset.props['Offset_cm'] ]
-		B_nT = [
-			_dipole_adjust( amp_X.max(), lOffset_m[0], rDist_m ),
-			_dipole_adjust( amp_Y.max(), lOffset_m[0], rDist_m ),
-			_dipole_adjust( amp_Z.max(), lOffset_m[0], rDist_m )
-		]
+		lOffset_m = [ float(sItem)*0.01 for sItem in dataset.props['Offset_cm'] ]
+		
+		Bmax_nT = [ _dipole_adjust( lAmp[i][lMax[i]], rDist_m, lOffset_m[i]) for i in range(3) ]
 
 		lDist.append(rDist_m)
+		lZangle.append(_angleZ(Bmax_nT))
 
 		# FIXME: I've renamed the original funcion angle() to _angleZ() since
 		#    that's what angle() seemed to calculate.  I think it's supposed
@@ -239,12 +298,13 @@ def dipole_from_rotation(lDsRaw):
 		#    to what?  Each sensor is rotated about it's Z axis compared to the
 		#    others, so maybe the Z angle is actually what's desired here.
 		#    Not sure.  -cwp
-		
-		#perr('B_nT = %s\nmag(B_nT) = %s\nZ angle = %s\n'%((B_nT, _mag(B_nT), _angleZ(B_nT))))
-		m = moment_from_bvec(rDist_m, _mag(B_nT)*1e-9, _angleZ(B_nT))
+		m = moment_from_bvec(rDist_m, _mag(Bmax_nT)*1e-9, lZangle[-1])
+
 		lDipole.append(m)
 
 	aDist_m = np.array(lDist)
+	aAngle_rad = np.array(lZangle)
+	aRot_Hz = np.array(lRate)
 
 	# axis is mangetic fields from strongest possible dipole orientation
 	# (actually, I don't see how that is true, angle calculation seems off)
@@ -263,5 +323,35 @@ def dipole_from_rotation(lDsRaw):
 	# estimated covariance of the moment fit, aka one standard deviation.
 	rMomentErr = np.sqrt(np.diag(mCovariance)) 
 
-	return (aDist_m, aBmax_T, aRot_Hz, rMomentFit, rMomentErr)
+	return (aDist_m, aRot_Hz, aAngle_rad, aBmax_T, rMomentFit, rMomentErr)
 
+# ########################################################################## #
+# Stray Field #
+
+status_text = ["FAILED", "PASSED", "CAUTION"]
+
+FAIL    = 0
+CAUTION = 1
+PASS    = 2
+
+def stray_field_1m(rMoment, rError):
+	"""Given a dipole moment and error, determine the stray field at 1 meter
+
+	Args:
+		rMoment (float): The dipole moment of a part
+		rError  (float): The uncertianty in the dipole moment
+	Returns (stray_magnitude, stray_error, status):
+		stray_magnitude: is the field at 1 meter due to the part
+		stray_error:     is the uncertianty in the stray field at 1 meter
+		status:          A value of calc.PASS, calc.FAIL, or calc.CAUTION
+	"""
+	Bstray = bmag_from_moment(1.0,rMoment) # Field @ 1 meter 
+	BstrayErr = bmag_from_moment(1.0, rError) # Err @ 1 meter
+	if (Bstray + BstrayErr) > 0.05:
+		nStatus = FAIL
+	elif (Bstray + BstrayErr) < (0.95 * 0.05):
+		nStatus = PASS
+	else:
+		nStatus = CAUTION
+
+	return (Bstray, BstrayErr, nStatus)

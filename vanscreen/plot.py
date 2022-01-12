@@ -50,7 +50,7 @@ def _markMaxAmp(oAxis, aX, aY, sPre, sColor, iRow):
 
 	rTextPos = 0.97 - 0.08*iRow
 
-	perr("lData, lMaxPos, rTextPos: %s, %s, %s, %s\n"%(aX[j],aY[j], lMaxPos, rTextPos))
+	#perr("lData, lMaxPos, rTextPos: %s, %s, %s, %s\n"%(aX[j],aY[j], lMaxPos, rTextPos))
 
 	if lMaxPos[1] > rTextPos: nAngleB = -60
 	else: nAngleB = 60

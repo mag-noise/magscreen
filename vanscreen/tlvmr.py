@@ -289,14 +289,14 @@ def write_mag_vecs(sFile, lVMRs, sTitle=None, dProps=None):
 			llHdrs[3][i*5 + 2] = '"%s"'%vmr.port             # Port
 
 			llHdrs[4][i*5 + 2] = '%.3f'%vmr.rate             # Sampling rate
-			llHdrs[4][i*5 + 3] = '"[Hz]"'%vmr.rate 
+			llHdrs[4][i*5 + 3] = '"[Hz]"'
 
 			llHdrs[5][i*5 + 2] = '%.2f'%vmr.dist             # Distance
 			llHdrs[5][i*5 + 3] = '"[cm]"'
 
 			llHdrs[6][i*5 + 2] = '1.025'                     # x,y,z magnetometer offests
-			llHdrs[6][i*5 + 3] = '0.0'
-			llHdrs[6][i*5 + 4] = '0.475'
+			llHdrs[6][i*5 + 3] = '0.0'                       # Varies by sensor type
+			llHdrs[6][i*5 + 4] = '0.475'                     # this is for Twinleaf VMR sensors
 
 			llHdrs[7][i*5 + 2] = '"%s"'%_basetime(vmr.time0) # Epoch
 

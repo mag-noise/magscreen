@@ -33,6 +33,27 @@ Sensors are arrange around the turntable as depicted below.
 
 ![Sensor Setup](doc/mag_screen_apperatus.jpg)
 
+Each differential serial <=> USB adapter has been labeled with it's internal serial
+number.  The screening software is able to read adapter numbers.  It uses these values
+to relate input data to sensor distances from the center of the object.  The default
+distances and serial numbers are given below.  If your setup differs from this chart,
+be sure to notify the screening program via it's command line arguments.
+
+| UART USB Serial | Default Radius (cm)|
+| ----------------| ------------------ |
+| DT04H6OF        |         9          |
+| DT04H6OX        |        11          |
+| DT04H6NY        |        15          |
+
+To make sure the software has been installed, start a cmd.exe or bash shell and 
+enter the following command:
+```bash
+mag_screen -h
+```
+
+If this command prints program help text, then your software environment is setup.
+Otherwise see the (install)[doc/install.md] document.
+
 ## Screening Procedure
 
 1. Open a shell window and type `python3 mag_screen OBJECT_ID` and do *not* press enter. 
@@ -40,9 +61,17 @@ Sensors are arrange around the turntable as depicted below.
 
 2. Make sure the rotating plate is at rest. Then place the object to be screened onto the plate.
 
-3. Turn the nitrogen gas relase value until the plate spins at about one revolution per **XXX** seconds.
+3. Setup the screening command, similar to below, but don't hit ENTER yet.
+```bash
+mag_screen "PartName"                               # Example: Using all defaults
+mag_screen -r 8.5,11,13.5 "PartName"                # Example: non-default sensor distances
+mag_screen -u DT04H6OY,DT04H6OF,DT04H6M8 "PartName" # Example: non-default UART serial nums
+mag_screen -r 10,15 -u DT04H6OF,DT04H6OX "PartName" # Example: only two sensors
+```
 
-4. Once the rotator plate is moving, hit enter in the shell to run the program.  This will
+4. Turn the nitrogen gas relase value until the plate spins at about one revolution per 2 to 8 seconds.
+
+5. Once the rotator plate is moving, hit ENTER in the shell to run the program.  This will
    output data to a CSV file and a PDF.  One containing test results the other containing
    best fit plots.
 
@@ -50,9 +79,29 @@ Sensors are arrange around the turntable as depicted below.
 
 6. Remove the object from the plate
 
-## Output Archiving
+## Output Archiving and Utility Programs
 
-*State where the output data are saved/tracked in the larger context of the TRACERS development program*
+Example program output files are given in the table below.
+
+| Step                | Links                                    |
+| ------------------- | ---------------------------------------- |
+| Raw data collection | (screwdriver.csv)[test/screwdriver.csv]  |
+| Single test plots   | (screwdriver.p1.png)[test/screwdriver.p1.png]  (screwdriver.p1.png)[test/screwdriver.p1.png] (screwdriver.pdf)[test/screwdriver.pdf]      |
+| Summary spreadsheet | (summary.csv)[test/summary.csv]          |
+
+Though the screening program reads raw data, generates plots, and saves an experimental
+summary record, only raw screening data need be captured during a test.  The following 
+utility programs are also provided:
+```bash
+mag_screen_plot  # Reads raw *.csv data and generates single test summary plots
+mag_screen_sum   # Reads raw *.csv data and updates a running summary of part test data.
+```
+
+After data are collected, files should be moved to a long term storage location.  The
+following location is recommended:
+
+  **FIXME: State where the output data are saved/tracked in the larger context of the
+    development program**
 
 ## Calculations
 
@@ -60,31 +109,6 @@ The data will be collected by three Twinleaf VMR magnetometers at three differen
 
 The Bx, By, Bz data from each sensor (now 9 total points) is then put into a Python 3 function to project a dipole moment and stray field.  Using the law of cosines, we can find the angle of the magnetic field and subsequently dipole moment relative to the z-axis. Knowing this angle, we can project these values into their most aggressive orientation (directly parallel with the z-axis), giving us 6 total data points. Each magnetometer projects an aggressive dipole moment and an aggressive magnetic field for its respective distance. These data points are then plot and best-fit to a function 1/distance^3. The best fit taken is the new dipole moment with error being calculated using the SciPy library curve_fit function. Using the calculated best-fit aggressive dipole, we calculate the stray field away at one meters. The function finds 3 things:(1) The best fit dipole moment from the object's data, (2) The stray field in nanoTesla 1 meter away, and (3) an indication the object has passed the test if its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the dipole moment is .0475 < m < .05.
 
-
-## The mag_shield_testing program
-
-The main data collection program is `mag_shield_testing.py`.  It only
-uses simple I/O and is ment to run in a terminal window or under 
-`cmd.exe` on windows.  At present the data collection portion of the 
-program and the magnetic moments calculations are not connected.
-
-A terminal session follows with only an X axis sensor connected
-
-```
-$ ./mag_shield_testing.py -y "" -z "" 10 20 30 -t 10
-Connecting to /dev/ttyUSB0 for X axis data.
-VMR - Twinleaf VMR R12 N201 [2021-03-16/c7c589]
-Use CTRL+C to quit early
-Collecting ~10 seconds of data .........10.
-X Axis: 204 rows collected
-X Sensor, Row    0:   0.176 ( 12893.084,  14438.618,  29103.146)
-          Row    1:   0.230 (  9663.970,  16602.135,  30022.584)
-          Row    2:   0.282 (  4607.244,  18416.695,  31129.545)
-          Row  204:  10.318 ( 13309.939,  21411.115, -28275.346)
-Data formatter not yet implemented
-CSV output function not yet implemented
-PDF plotter function not yet implemented
-```
 
 ## Extra
 

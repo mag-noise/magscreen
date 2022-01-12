@@ -10,7 +10,7 @@ perr = sys.stderr.write  # shorten a long function names
 
 # Fix dubious help text output ############################################# #
 
-class CustomFormatter(argparse.HelpFormatter):
+class BreakFormatter(argparse.HelpFormatter):
 	"""Allow for manual line breaks in description and epilog blocks of help text.
 	To insert a line break use the vertical tab (\\v) character into a text block."""
 	def _fill_text(self, text, width, indent):

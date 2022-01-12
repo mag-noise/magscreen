@@ -10,7 +10,6 @@ from scipy.optimize import curve_fit
 
 import semcsv
 
-
 perr = sys.stderr.write  # shorten a long function name
 
 def spectrum(vTime, vData):
@@ -264,15 +263,20 @@ def dipole_from_rotation(lDsRaw):
 			)
 
 		lMax = [ np.argmax(amp) for amp in lAmp ]
-		
+		#perr("INFO:  %s, max freq %s\n"%(dataset.props['UART'][2], lMax))
+
 		# Check to see than all maximums fall on the same (or adjacent) freq. bin
-		for i in range(2):
-			if abs(lMax[i+1] - lMax[0]) > 1:
-				lWarn.append("%s max amplitude at %0.3f Hz, %s max amplitude at %0.3f Hz. %s"%(
-					dataset.props['UART'][0], freq_X, dataset.props['UART'][i+1], freq_Y,
-					"Are you in the near field?"
+		_temp = ('x','y','z')
+		for i in range(1,3):
+			freq_0 = lFreq[iX][lMax[iX]]
+			if abs(lMax[i] - lMax[iX]) > 1:
+				
+				freq_N = lFreq[i][lMax[i]]
+
+				perr("WARN:  For %s Bx_max @ %0.3f Hz but B%s_max @ %0.3f Hz. %s\n"%(
+					dataset.props['UART'][2], freq_0, _temp[i], freq_N, 
+					"Was the sensor in the near field?"
 				))
-				break
 
 		lRate.append( (lFreq[0][lMax[0]] + lFreq[1][lMax[1]] + lFreq[2][lMax[2]])/3.0 )
 		
@@ -341,8 +345,8 @@ def stray_field_1m(rMoment, rError):
 		rMoment (float): The dipole moment of a part
 		rError  (float): The uncertianty in the dipole moment
 	Returns (stray_magnitude, stray_error, status):
-		stray_magnitude: is the field at 1 meter due to the part
-		stray_error:     is the uncertianty in the stray field at 1 meter
+		stray_magnitude: The stray field at 1 meter in [nT] 
+		stray_error:     The uncertianty in the stray field at 1 meter in [nT]
 		status:          A value of calc.PASS, calc.FAIL, or calc.CAUTION
 	"""
 	Bstray = bmag_from_moment(1.0,rMoment) # Field @ 1 meter 
@@ -354,4 +358,4 @@ def stray_field_1m(rMoment, rError):
 	else:
 		nStatus = CAUTION
 
-	return (Bstray, BstrayErr, nStatus)
+	return (Bstray*1e9, BstrayErr*1.9, nStatus)

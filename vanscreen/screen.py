@@ -13,17 +13,23 @@ import getpass       # Username
 import platform      # Hostname
 from os.path import join as pjoin
 
-from vanscreen import *
+import common # Local modules
+import tlvmr
+import semcsv
+import plot
+import summary
 
 # The version of this software, need to be able to set this via the release
 # process somehow
 g_sVersion = "vanscreen-0.2"
 
 # Output stuff
-if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):
-	# Work around matplotlib bug on linux, it depends on the DISPLAY
-	# environment variable but that's not always set anymore.
-	os.environ['DISPLAY'] = ':0'
+#  This is no longer needed using AGG matplotlib backend...
+#if (sys.platform != 'win32') and ('DISPLAY' not in os.environ):
+#	# Work around matplotlib bug on linux, it depends on the DISPLAY
+#	# environment variable but that's not always set anymore.
+#	os.environ['DISPLAY'] = ':0'
+
 import matplotlib.pyplot as plt 
 
 # Global variable and signal handler to halt main data collection loop
@@ -85,60 +91,62 @@ def main():
 	"""
 	global g_lCollectors, g_display, g_sigint
 	
-	psr = argparse.ArgumentParser(formatter_class=CustomFormatter)
+	psr = argparse.ArgumentParser(formatter_class=common.BreakFormatter)
 	psr.description = '''\
-		Collect magnetic sensor data from twinleaf sensors for a fixed time
-		period and output data and plot files.'''
+		Use 2 to N twinleaf VMR sensors to calculate the dipole moment of 
+		an object slowly spinning in a static magnetic field.'''
 	psr.epilog = '''\
-	Author: cole-dorman@uiowa.edu, chris-piker@uiowa.edu\v
-	Source: https://research-git.uiowa.edu/space-physics/tracers/magic/utilities
+	Author: chris-piker@uiowa.edu, cole-dorman@uiowa.edu\v
+	Source: https://research-git.uiowa.edu/space-physics/utilities/python/vangse
 	'''
 	
 	# By tradition, optional command line parameters are first...
 	psr.add_argument(
-		'-r', '--rate', dest='sample_hz', metavar='HZ', type=int, default=10,
+		'-f', '--freq', dest='sRate', metavar='HZ', type=int, default=10,
 		help='The number of data points to collect per sensor, per second.  '+\
 		     'Defaults to 10 Hz so that slow python code can keep up.\n'
 	)
 	
 	psr.add_argument(
-		'-t', '--time', dest='duration', metavar='SEC', type=int, default=20,
+		'-t', '--time', dest='sDuration', metavar='SEC', type=int, default=20,
 		  help='The total number of seconds to collect data, defaults to 20.\n'
 	)
-		 
-	defs = {
-		'name':(0,1,2), 'dist':(9, 11, 15), 'serial':('DT04H6OF','DT04H6OX','DT04H6NY')
-	}
 	
-	for i in range(3):
-		ser_num = defs['serial'][i]
-		
-		psr.add_argument(
-			"--s%d"%defs['name'][i], dest='serialno%d'%defs['name'][i], metavar='SERIAL',
-			type=str, default=ser_num,
-			help='The UART serial number of the UART hosting VMR sensor ' +\
-			"%d"%defs['name'][i] + '.  Defaults to ' + ser_num + '.  To ignore data '+\
-			'from this sensor give an empty string as the serial number (i.e. "").' +\
-			'The full serial number need not be supplied so long the provide string '+\
-			'is sufficent to distinguish each sensor.'
-		)
+	sDef="9,11,15"
+	psr.add_argument(
+		"-r","--radius", dest='sRadii', metavar="CM,CM,...", type=str, 
+		default=sDef,  help="The distance from the center of the object to "+\
+		"each VMR sensor face in centimeters.  Defaults to %s cm.  Note "%sDef+\
+		"that the number of distances given (or assumed) defines the number "+\
+		"of expected sensors.  If less than, or more than 3 sensors are to "+\
+		"be read this argument is required.\n"
+	)
 
-		psr.add_argument(
-			"--d%d"%defs['name'][i], dest='dist%s'%defs['name'][i], metavar='CM', 
-			type=float, default=defs['dist'][i],
-			help='The distance in cm from the (TBD location) to the front face '+\
-			'of sensor %d'%defs['name'][i] + '.  Defaults to %d cm.\n'%defs['dist'][i]
-		)
+	sDef='DT04H6OF,DT04H6OX,DT04H6NY'
+	psr.add_argument(
+		"-u","--uarts", dest='sUarts', metavar="SERIAL,SERIAL,...", type=str, 
+		default=sDef, help="The serial number of the UARTs to read for each "+\
+		"radius.  This defaults to %s.  Note that the number of "%sDef+\
+		"sensors read is based on the number of sensor distances provided in "+\
+		"the --radius argument.\n"
+	)
 	
 	psr.add_argument(
-		'-d', '--out-dir', dest='out_dir', metavar='DIR', type=str,
-		default='.', help='Output files to folder/directory DIR instead of '+\
-		'the current location'
+		'-m', '--message', dest="sMsg", metavar='"Short msg"', type=str, default=None,
+		help="Add a one line message to be saved with the test data."
 	)
 
 	psr.add_argument(
-		'-m', '--message', dest="msg", metavar="NOTE", type=str, default=None,
-		help="Add a message to be included in the output files."
+		'-d', '--out-dir', dest='sOutDir', metavar='DIR', type=str,
+		default='.', help='Output detailed test files to '+\
+		'folder%sdirectory DIR instead of the current location.'%os.sep
+	)
+
+	psr.add_argument(
+		'-s', '--summary', dest="sSummary", metavar="FILE", type=str, 
+		default="ScreenResults.csv", help="A summary of the screening results "+\
+		"are appended to this file.  May be given as an absolute path, parent "+\
+		"directories will be created as needed."
 	)
 	
 	# ... and positional parameters follow
@@ -148,50 +156,60 @@ def main():
 	)
 	
 	opts = psr.parse_args()
-		
+
 	# Set user interup handlers in case user wants to quite early.
 	signal.signal(signal.SIGINT, setQuit)
 	signal.signal(signal.SIGTERM, setQuit)
 	
 	# Since SIGALRM isn't available on Windows, spawn a thread to countdown to
 	# the end of the data collection period, check user supplied time
-	if opts.duration < 1 or opts.duration > 60*60:
-		perr('ERROR: Test duration must be between 1 second and 1 hour\n')
+	if opts.sDuration < 1 or opts.sDuration > 60*60:
+		perr('ERROR: Test sDuration must be between 1 second and 1 hour\n')
 		return 7
 	
 	# Set at X samples per second per sensor, should be no more then
 	# 10 samples per second so that slow python code can keep up
-	if (opts.sample_hz < 1) or (opts.sample_hz >= 200):
-		perr("ERROR: Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sample_hz)
+	if (opts.sRate < 1) or (opts.sRate >= 200):
+		perr("ERROR: Requested sample rate %d is out of expected range 1 to 200 (Hz)."%opts.sRate)
 		return 8
 
-	rTime0 = time.time()  # Current unix time in floating point seconds
-	
+	# See how many sensors we're going to use
+	lDist = [int(s.strip(),10) for s in opts.sRadii.split(',')]
+	nSensors = len(lDist)
+	if nSensors < 1:
+		perr("ERROR: At least one measurement distance must be given via -r\n")
+		return 9
+
+	lSerial = [s.strip() for s in opts.sUarts.split(',')]
+	if len(lSerial) < nSensors:
+		perr("ERROR: %d UARTs are required for measurements at %d distances.\n"%(
+			nSensors, nSensors
+		))
+		return 10
+
+	rTime0 = time.time()  # Current unix time in floating point seconds	
 	g_bSigInt = False    # Global interrupt flag
 
 	# Check that our non-empty sensors can be distinguished from each other
 	g_lCollectors = []
-	tSer = (opts.serialno0, opts.serialno1, opts.serialno2)
-	for i in range(3):
-		if len(tSer) == 0: continue
-
+	for i in range(nSensors):
 		lTest = []
-		for j in range(3): 
-			if (j != i) and (len(tSer[j]) > 0): lTest.append(tSer[j])
-		if i in lTest:
-			perr("ERROR: UART serial number %s is not unique!\n")
+		for j in range(nSensors): 
+			if (j != i): lTest.append(lSerial[j])
+		if lSerial[i] in lTest:
+			perr("ERROR: UART serial number %s is not unique in %s!\n"%(lSerial[i], opts.sUarts))
 			return 13
 
 		try:
-			g_lCollectors.append( VMR('%d'%i, tSer[i], opts.sample_hz) )
+			g_lCollectors.append( tlvmr.VMR('%d'%i, lSerial[i], opts.sRate) )
 		except OSError as e:
 			perr("ERROR: %s\n"%e)
-			perr('INFO:  Sensors can be ignored using -s0 "", -s1 "", or -s2 "".')
+			perr('HINT:  Sensors can be ignored by requesting data at fewer distances.')
 			perr('  Use -h for more info.\n')
 			return 15
 
 		g_lCollectors[-1].set_time0(rTime0)
-		g_lCollectors[-1].set_dist(opts.sample_hz)
+		g_lCollectors[-1].set_dist(lDist[i])
 
 	if len(g_lCollectors) == 0:
 		perr('INFO:  No data collection ports specified, successfully did nothing.\n')
@@ -199,10 +217,10 @@ def main():
 	
 	# Create a display output thread
 	perr("MSG:   Use CTRL+C to quit early\n")
-	g_display = Display("MSG:   Collecting ~%d seconds of data "%opts.duration)
+	g_display = common.Display("MSG:   Collecting ~%d seconds of data "%opts.sDuration)
 	
 	# create an alarm thread to stop taking data
-	alarm = threading.Timer(opts.duration + (time.time() - rTime0), setDone)
+	alarm = threading.Timer(opts.sDuration + (time.time() - rTime0), setDone)
 	
 	# Start all the threads
 	for collector in g_lCollectors:
@@ -223,20 +241,22 @@ def main():
 		return 4  # An error return value
 	
 	# Save raw-data from collectors
-	sFile = pjoin(opts.out_dir, "%s.csv"%safe_filename(opts.PART))
+	sFile = pjoin(opts.sOutDir, "%s.csv"%common.safe_filename(opts.PART))
 	sTitle = "Magnetic Screening Test, Raw Data"
-	write_mag_vecs(sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.msg))
+	tlvmr.write_mag_vecs(
+		sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.sMsg)
+	)
 
 	# Plot time series and PSD of the raw data, as a cross check
 	(dProps, lDatasets) = semcsv.read(sFile)
 	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
 	
 	# Open the roll-up info file (or create one if it doesn't exist)
-	test_summary("summary.csv", dProps, lDatasets)
+	summary.append(opts.sSummary, dProps, lDatasets)
+	perr("INFO:  Summary appended to %s\n"%opts.sSummary)
 	
 	return 0  # An all-okay return value
-	
-	
-# Run the main function and give it the command line arguments
+
+# Run the main function if this is a top level script
 if __name__ == "__main__":
 	sys.exit(main())

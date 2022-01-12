@@ -27,7 +27,7 @@ The following equipment is needed:
 4. The three labeled Twinleaf USB to differential serial UARTs 
 
 5. A PC with this software installed.  For installation instructions
-   see the file (doc/install.md)[doc/install.md]
+   see the file [doc/install.md](doc/install.md)
 
 Sensors are arrange around the turntable as depicted below.
 
@@ -52,7 +52,7 @@ mag_screen -h
 ```
 
 If this command prints program help text, then your software environment is setup.
-Otherwise see the (install)[doc/install.md] document.
+Otherwise see the [install.md](doc/install.md) document.
 
 ## Screening Procedure
 
@@ -85,9 +85,9 @@ Example program output files are given in the table below.
 
 | Step                | Links                                    |
 | ------------------- | ---------------------------------------- |
-| Raw data collection | (screwdriver.csv)[test/screwdriver.csv]  |
-| Single test plots   | (screwdriver.p1.png)[test/screwdriver.p1.png]  (screwdriver.p1.png)[test/screwdriver.p1.png] (screwdriver.pdf)[test/screwdriver.pdf]      |
-| Summary spreadsheet | (summary.csv)[test/summary.csv]          |
+| Raw data collection | [screwdriver.csv](test/screwdriver.csv)  |
+| Single test plots   | [screwdriver.p1.png](test/screwdriver.p1.png)  [screwdriver.p1.png](test/screwdriver.p1.png) [screwdriver.pdf](test/screwdriver.pdf)      |
+| Summary spreadsheet | [summary.csv](test/summary.csv)          |
 
 Though the screening program reads raw data, generates plots, and saves an experimental
 summary record, only raw screening data need be captured during a test.  The following 

@@ -74,8 +74,10 @@ env PYTHONPATH=. python3 vanscreen/mag_screen.py -r 11,15,20 test_object    # Li
 
 To install the software so thats available outside the source directory:
 ```bash
-pip install vanscreen  # Install software
-mag_screen -h          # A basic test, no sensors necessary
+cd /your/local/clone/directory
+pip install .\vanscreen  # Install software (windows)
+pip install ./vanscreen  # Install software (linux)
+mag_screen -h            # A basic test, no sensors necessary
 ```
 
 

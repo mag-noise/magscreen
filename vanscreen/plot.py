@@ -14,6 +14,7 @@ from scipy.constants import pi
 # Plot stuff
 from matplotlib.figure import Figure
 
+
 # Our stuff
 from vanscreen.common import BreakFormatter
 import vanscreen.semcsv as semcsv

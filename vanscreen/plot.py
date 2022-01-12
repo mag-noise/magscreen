@@ -15,9 +15,9 @@ from scipy.constants import pi
 from matplotlib.figure import Figure
 
 # Our stuff
-from common import BreakFormatter
-import semcsv
-import calc
+from vanscreen.common import BreakFormatter
+import vanscreen.semcsv as semcsv
+import vanscreen.calc as calc
 
 perr = sys.stderr.write  # shorten a long function name
 

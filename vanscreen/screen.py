@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Collects data from twinleaf sensors for magnetic cleanliness testing.
 """
@@ -13,15 +12,15 @@ import getpass       # Username
 import platform      # Hostname
 from os.path import join as pjoin
 
-import common # Local modules
-import tlvmr
-import semcsv
-import plot
-import summary
+import vanscreen.common as common # Local modules
+import vanscreen.tlvmr as tlvmr
+import vanscreen.semcsv as semcsv
+import vanscreen.plot as plot
+import vanscreen.summary as summary
 
 # The version of this software, need to be able to set this via the release
 # process somehow
-g_sVersion = "vanscreen-0.2"
+g_sVersion = "vanscreen-0.3"
 
 # Output stuff
 #  This is no longer needed using AGG matplotlib backend...

@@ -6,9 +6,9 @@ import argparse
 from os.path import basename as bname
 from os.path import dirname as dname
 
-import common
-import semcsv
-import calc
+import vanscreen.common as common
+import vanscreen.semcsv as semcsv
+import vanscreen.calc as calc
 
 perr = sys.stderr.write  # shorten a long function name
 

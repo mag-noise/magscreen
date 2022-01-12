@@ -8,7 +8,7 @@ from scipy.constants import pi
 from scipy.constants import mu_0
 from scipy.optimize import curve_fit
 
-import semcsv
+import vanscreen.semcsv as semcsv
 
 perr = sys.stderr.write  # shorten a long function name
 

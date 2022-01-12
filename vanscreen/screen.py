@@ -251,6 +251,9 @@ def main():
 	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
 	
 	# Open the roll-up info file (or create one if it doesn't exist)
+	if os.sep not in opts.sSummary:
+		opts.sSummary = pjoin(opts.sOutDir, opts.sSummary)
+	
 	summary.append(opts.sSummary, dProps, lDatasets)
 	perr("INFO:  Summary appended to %s\n"%opts.sSummary)
 	

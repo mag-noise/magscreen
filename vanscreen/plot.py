@@ -209,10 +209,10 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	axDipole.set_xlabel('Sensor Distance [cm]')
 	axDipole.set_ylabel('Axial Dipole Magnitude [nT]')
 
-	(Bstray, BstrayErr, iStatus) = calc.stray_field_1m(moment, merror)
+	(Bstray, BstrayErr, nStatus) = calc.stray_field_1m(moment, merror)
 
 	axDipole.set_title(
-		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],calc.status_text[iStatus])
+		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],calc.status_text[nStatus])
 	)
 	axDipole.legend()
 

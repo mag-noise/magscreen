@@ -45,11 +45,11 @@ def append(sAbsFile, dProps, lDs):
 	fOut = open(sAbsFile, "a", newline='') # Should auto seek(END)
 
 	(dist, rate, Zangle, Bdipole, moment, merror) = calc.dipole_from_rotation(lDs)
-	(Bstray, BstrayErr, iStatus) = calc.stray_field_1m(moment, merror)
+	(Bstray, BstrayErr, nStatus) = calc.stray_field_1m(moment, merror)
 
 	fOut.write('"%s","%s","%s","%s",%.3e,%.3e,"%s"\r\n'%(
 		dProps['Part'][0], dProps['Timestamp'][0], dProps['User'][0],
-		dProps['Version'][0], moment, Bstray, calc.status_text[iStatus]
+		dProps['Version'][0], moment, Bstray, calc.status_text[nStatus]
 	))
 
 	fOut.flush()

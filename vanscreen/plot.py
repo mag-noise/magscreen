@@ -200,10 +200,10 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 	#error of 4 nT from the Twinleaf VMRs
 	VMR_err = 4e-9 #Tesla
-'''	
-error of .05 centimeters, since distance in magnetic field calculation as 1/r^3, 
-error function of sqrt(dB/dr^2 * error_r^2)
-'''
+	'''	
+	error of .05 centimeters, since distance in magnetic field calculation as 1/r^3, 
+	error function of sqrt(dB/dr^2 * error_r^2)
+	'''
 	dist_err = .0005 #meters
 	dist_err_calc = ( ((3/2)*(((1.256*10**-6)*(moment))/(2*3.14*dist**4)))**2 * (dist_err)**2 )**.5
 

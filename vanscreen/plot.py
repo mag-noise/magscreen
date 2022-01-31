@@ -212,7 +212,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	(Bstray, BstrayErr, iStatus) = calc.stray_field_1m(moment, merror)
 
 	axDipole.set_title(
-		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],calc.status_text[iStatus])
+		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],str(iStatus))
 	)
 	axDipole.legend()
 

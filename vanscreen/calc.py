@@ -332,7 +332,7 @@ def dipole_from_rotation(lDsRaw):
 # ########################################################################## #
 # Stray Field #
 
-status_text = ["FAILED", "CAUTION", "PASSED"]
+status_text = ["FAILED", "PASSED", "CAUTION"]
 
 FAIL    = 0
 CAUTION = 1

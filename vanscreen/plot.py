@@ -174,6 +174,8 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 # ############################################################################ #
 # Stray field plot #
 
+VMRerr = 4e-9 #Tesla
+
 def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	"""Calculate and plot the expected stray field at 1-meter
 
@@ -198,7 +200,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	aFitDist = np.linspace(dist[0], dist[-1], num=30)
 	aFitPts = calc.bmag_from_moment(aFitDist,moment)
 
-	axDipole.plot(dist*100, Bdipole*1e9, 'bo',      label='Calculated Dipole')
+	axDipole.errorbar(dist*100, Bdipole*1e9, yerr=VMRerr*1e9, fmt='bo', capsize=3, label='Calculated Dipole')
 	axDipole.plot(aFitDist*100, aFitPts*1e9, 'r-', label='Best Fit Dipole')
 	axDipole.set_title(
 		'Magnetic Screening Dipole Field\n%s\non %s'%(

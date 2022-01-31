@@ -174,8 +174,6 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 # ############################################################################ #
 # Stray field plot #
 
-VMRerr = 4e-9 #Tesla
-
 def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	"""Calculate and plot the expected stray field at 1-meter
 
@@ -200,7 +198,18 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	aFitDist = np.linspace(dist[0], dist[-1], num=30)
 	aFitPts = calc.bmag_from_moment(aFitDist,moment)
 
-	axDipole.errorbar(dist*100, Bdipole*1e9, yerr=VMRerr*1e9, fmt='bo', capsize=3, label='Calculated Dipole')
+	#error of 4 nT from the Twinleaf VMRs
+	VMR_err = 4e-9 #Tesla
+'''	
+error of .05 centimeters, since distance in magnetic field calculation as 1/r^3, 
+error function of sqrt(dB/dr^2 * error_r^2)
+'''
+	dist_err = .0005 #meters
+	dist_err_calc = ( ((3/2)*(((1.256*10**-6)*(moment))/(2*3.14*dist**4)))**2 * (dist_err)**2 )**.5
+
+	tot_err = (( dist_err_calc**2 + VMR_err**2 )**.5)*1e9 #independent error combined
+
+	axDipole.errorbar(dist*100, Bdipole*1e9, yerr=tot_err, fmt='bo', capsize=3, label='Calculated Dipole')
 	axDipole.plot(aFitDist*100, aFitPts*1e9, 'r-', label='Best Fit Dipole')
 	axDipole.set_title(
 		'Magnetic Screening Dipole Field\n%s\non %s'%(

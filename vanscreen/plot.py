@@ -209,7 +209,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 	tot_err = (( dist_err_calc**2 + VMR_err**2 )**.5)*1e9 #independent error combined
 
-	axDipole.errorbar(dist*100, Bdipole*1e9, yerr=tot_err, fmt='bo', capsize=3, label='[test, delete this] Calculated Dipole')
+	axDipole.errorbar(dist*100, Bdipole*1e9, yerr=tot_err, fmt='bo', capsize=3, label='Calculated Dipole')
 	axDipole.plot(aFitDist*100, aFitPts*1e9, 'r-', label='Best Fit Dipole')
 	axDipole.set_title(
 		'Magnetic Screening Dipole Field\n%s\non %s'%(

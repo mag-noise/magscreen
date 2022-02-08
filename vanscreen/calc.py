@@ -356,6 +356,6 @@ def stray_field_1m(rMoment, rError):
 	elif (rMoment + rError) < (0.95 * 0.05):
 		nStatus = PASS
 	else:
-		nStatus = CAUTION
+		nStatus = 2
 
 	return (Bstray*1e9, BstrayErr*1.9, nStatus)

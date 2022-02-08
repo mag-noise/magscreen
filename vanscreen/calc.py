@@ -352,10 +352,10 @@ def stray_field_1m(rMoment, rError):
 	Bstray = bmag_from_moment(1.0,rMoment) # Field @ 1 meter 
 	BstrayErr = bmag_from_moment(1.0, rError) # Err @ 1 meter
 	if (Bstray + BstrayErr) > 0.05:
-		nStatus = FAIL
+		nStatus = 'FAIL'
 	elif (Bstray + BstrayErr) < (0.95 * 0.05):
-		nStatus = PASS
+		nStatus = 'PASS'
 	else:
-		nStatus = CAUTION
+		nStatus = 'CAUTION'
 
 	return (Bstray*1e9, BstrayErr*1.9, nStatus)

@@ -225,7 +225,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	status_text = ["FAILED", "PASSED", "CAUTION"]
 
 	axDipole.set_title(
-		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],status_text[iStatus])
+		'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],iStatus)
 	)
 	axDipole.legend()
 

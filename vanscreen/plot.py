@@ -232,7 +232,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 		nStatus = FAIL
 	elif (moment + merror) < (0.95 * 0.05):
 		nStatus = PASS
-	else:
+	elif (moment + merror) > (0.95 * 0.05) and (moment + merror) < .05:
 		nStatus = CAUTION
 
 	axDipole.set_title(

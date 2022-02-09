@@ -222,21 +222,8 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 	(Bstray, BstrayErr, iStatus) = calc.stray_field_1m(moment, merror)
 
-	status_text = ["FAILED", "CAUTION", "PASSED"]
-
-	FAIL    = 0
-	CAUTION = 1
-	PASS    = 2
-
-	if (moment + merror) > 0.05:
-		nStatus = FAIL
-	elif (moment + merror) < (0.95 * 0.05):
-		nStatus = PASS
-	elif (moment + merror) > (0.95 * 0.05) and (moment + merror) < .05:
-		nStatus = CAUTION
-
 	axDipole.set_title(
-		 'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],status_text[nStatus])
+		 'Mag Screen for: %s\nResult: %s'%(dProps['Part'][0],calc.status_text[iStatus])
 	)
 	axDipole.legend()
 

@@ -235,7 +235,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 
 	lNotes = [
-		'Timstamp:            %s'%(dProps['Timestamp'][0]),
+		'Timestamp:            %s'%(dProps['Timestamp'][0]),
 		#'chi-squared = %0.3f'%chi_sq, 'p-value = %0.3f'%p_val,
 		'Dipole Moment:    %.2e ± %0.2e [N m T^-1]'%(moment, merror),
 		'Stray Field @ 1m: %0.2e ± %0.2e [nT]'%(Bstray, BstrayErr)

@@ -65,7 +65,7 @@ def spectrum(vTime, vData):
 		
 	nSegLen = 256
 	if len(vData) < nSegLen: nSegLen = len(vData)
-	(aXf, aYf) = signal.welch(vData, rFreq, window='blackman', nperseg=nSegLen, scaling='spectrum')
+	(aXf, aYf) = signal.welch(vData, rFreq, window='flattop', nperseg=nSegLen, scaling='spectrum')
 	aYf = np.sqrt(aYf)
 
 	return (aXf, aYf)

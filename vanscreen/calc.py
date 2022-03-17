@@ -348,7 +348,7 @@ def dipole_from_rotation(lDsRaw):
 	# estimated covariance of the moment fit, aka one standard deviation.
 	rMomentErr = np.sqrt(np.diag(mCovariance)) 
 
-	return (aDist_m, aRot_Hz, aAngle_radz, aBmax_T, rMomentFit, rMomentErr, aAngle_radx)
+	return (aDist_m, aRot_Hz, aAngle_radz, aAngle_radx, aBmax_T, rMomentFit, rMomentErr)
 
 # ########################################################################## #
 # Stray Field #

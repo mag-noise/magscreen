@@ -270,8 +270,9 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 	axAngle = fig.add_axes((0.6, 0.1, 0.3, 0.2), ylim=(0,180))
 
-	axAngle.plot(dist*100, Zangle*180/pi, color='green', marker='o', label = 'Z axis')
-	axAngle.plot(dist*100, Xangle*180/pi, color='orange', marker='o', label = 'X axis')
+	axAngle.plot(dist*100, Zangle*180/pi, color='green', marker='o', label = 'Z axis', \
+	dist*100, Xangle*180/pi, color='orange', marker='o', label = 'X axis')
+
 	axAngle.set_title('Angle between dipole axis and X & Z axis', fontsize=8)
 	axAngle.set_ylabel('[degrees]', fontsize=8)
 	axAngle.set_xlabel('Sensor Distance [cm]', fontsize=8)

@@ -1,5 +1,6 @@
 build
 vanscreen/__pycache__
 *.egg-info
-
+*.csv
+*.pdf
 

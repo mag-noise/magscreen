@@ -189,7 +189,7 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	fig = Figure(figsize=tFigSz)
 	axDipole = fig.add_axes((0.15, 0.5, 0.75, 0.4))
 
-	(dist, rate, Zangle, Bdipole, moment, merror) = calc.dipole_from_rotation(lDs)
+	(dist, rate, Zangle, Xangle, Bdipole, moment, merror) = calc.dipole_from_rotation(lDs)
 
 	# Using the fitted moment value, provide the field magnitude at 1 meter.
 	Bstray_T    = calc.bmag_from_moment(1, moment)
@@ -257,10 +257,13 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 
 	axAngle = fig.add_axes((0.6, 0.1, 0.3, 0.2), ylim=(0,180))
 
-	axAngle.plot(dist*100, Zangle*180/pi, 'go')
-	axAngle.set_title('Angle between dipole axis and Z axis', fontsize=8)
+	axAngle.plot(dist*100, Zangle*180/pi, color='green',  marker='o', label = 'Z axis')
+	axAngle.plot(dist*100, Xangle*180/pi, color='orange', marker='o', label = 'X axis')
+
+	axAngle.set_title('Angle between dipole axis and X & Z axis', fontsize=8)
 	axAngle.set_ylabel('[degrees]', fontsize=8)
 	axAngle.set_xlabel('Sensor Distance [cm]', fontsize=8)
+	axAngle.legend()
 	axAngle.grid(True)
 
 	return fig

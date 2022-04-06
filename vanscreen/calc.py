@@ -1,5 +1,5 @@
 """Dataset calculations for Magnetic Cleanliness Screening"""
-
+#test
 import sys
 import numpy as np
 
@@ -72,7 +72,7 @@ def spectrum(vTime, vData):
 
 # ########################################################################## #
 
-def moment_from_bvec(r_meters, mag_Tesla, angle):
+def moment_from_bvec(r_meters, mag_Tesla, angleZ, angleX):
 	"""Determine the magnetic dipole moment of an object give a measurement of
 	the surrounding field at a single point.
 	
@@ -86,8 +86,11 @@ def moment_from_bvec(r_meters, mag_Tesla, angle):
 			The B-field magnitude measured at a distance r from the center
 			object generating the field.
 
-		angle (float):
-			The angle between ????? in radians
+		angleZ (float):
+			The angle between dipole axis and zaxis in radians
+
+		angleX (float):
+			The angle between dipole axis and xaxis in radians
 
 			FIXME: Figure out what this angle is measured between, it looks to
 			       be the Z-axis of the sensor, but there is no physical
@@ -98,7 +101,9 @@ def moment_from_bvec(r_meters, mag_Tesla, angle):
 	"""
 	return (
 		( 4 * pi * r_meters**3 * mag_Tesla ) / 
-		( mu_0*(2*np.cos(angle)**2 - np.sin(angle)**2) )
+		( mu_0*np.sqrt( (3*np.cos(angleZ)*np.sin(angleZ)*np.cos(angleX))**2 
+		+ (3*np.cos(angleZ)*np.sin(angleZ)*np.sin(angleX))**2 
+		+ (2*np.cos(angleZ)**2 - np.sin(angleZ)**2)**2 ) )
 	)
 
 
@@ -124,6 +129,18 @@ def _angleZ(vec):
 	if len(vec) != 3: raise ValueError("Expected a 3-vector")
 
 	return np.arccos( np.dot(vec, np.array([0,0,1])) / _mag(vec) )
+
+def _angleX(vec):
+	"""Find angle between a 3-vector and the X axis [1,0,0]
+	Args:
+		vec (array-like): A 3-vector, in the order X, Y, Z
+
+	Returns:
+		The angle between the vector and the X axis in radians.
+	"""
+	if len(vec) != 3: raise ValueError("Expected a 3-vector")
+
+	return np.arccos( np.dot(vec, np.array([1,0,0])) / _mag(vec) )
 
 
 def _dipole_adjust(reading, reference, offset):
@@ -218,11 +235,12 @@ def dipole_from_rotation(lDsRaw):
 		More datasets are preferred, but a least two are required.
 
 	Returns:
-		(dist, rate, Zangle, Bdipole, moment, merror)
+		(dist, rate, Zangle, Bdipole, moment, merror, Xangle)
 
 		dist [m]:     Array of sensor distances from center of object
 		rate [Hz]:    Array of rotation rates at each sensor (should be constant)
 		Zangle [rad]: Array of angles from dipole axis to zaxis at each distance
+		Xangle [rad]: Array of angles from dipole axis to xaxis at each distance
 		Bdipole [T]:  Array of dipole component field values at each distance
 
 		moment [N m T**-1]: The calculated dipole moment (scalar)
@@ -242,8 +260,9 @@ def dipole_from_rotation(lDsRaw):
 	#    sepectral density.
 
 	lDist   = []  # Distance to the center of the object in [m]
-	lRate = []
+	lRate   = []
 	lZangle = []
+	lXangle = []
 	lDipole = []  # Dipole in units of [N m T**-1]
 
 	for dataset in lDsRaw:
@@ -295,6 +314,7 @@ def dipole_from_rotation(lDsRaw):
 
 		lDist.append(rDist_m)
 		lZangle.append(_angleZ(Bmax_nT))
+		lXangle.append(_angleX(Bmax_nT))
 
 		# FIXME: I've renamed the original funcion angle() to _angleZ() since
 		#    that's what angle() seemed to calculate.  I think it's supposed
@@ -302,12 +322,13 @@ def dipole_from_rotation(lDsRaw):
 		#    to what?  Each sensor is rotated about it's Z axis compared to the
 		#    others, so maybe the Z angle is actually what's desired here.
 		#    Not sure.  -cwp
-		m = moment_from_bvec(rDist_m, _mag(Bmax_nT)*1e-9, lZangle[-1])
+		m = moment_from_bvec(rDist_m, _mag(Bmax_nT)*1e-9, lZangle[-1],  lXangle[-1])
 
 		lDipole.append(m)
 
 	aDist_m = np.array(lDist)
-	aAngle_rad = np.array(lZangle)
+	aAngle_radz = np.array(lZangle)
+	aAngle_radx = np.array(lXangle)
 	aRot_Hz = np.array(lRate)
 
 	# axis is mangetic fields from strongest possible dipole orientation
@@ -327,7 +348,7 @@ def dipole_from_rotation(lDsRaw):
 	# estimated covariance of the moment fit, aka one standard deviation.
 	rMomentErr = np.sqrt(np.diag(mCovariance)) 
 
-	return (aDist_m, aRot_Hz, aAngle_rad, aBmax_T, rMomentFit, rMomentErr)
+	return (aDist_m, aRot_Hz, aAngle_radz, aAngle_radx, aBmax_T, rMomentFit, rMomentErr)
 
 # ########################################################################## #
 # Stray Field #

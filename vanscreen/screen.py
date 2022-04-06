@@ -240,7 +240,7 @@ def main():
 		return 4  # An error return value
 	
 	# Save raw-data from collectors
-	sFile = pjoin(opts.sOutDir, "%s.csv"%common.safe_filename(opts.PART))
+	sFile = pjoin(opts.sOutDir, "%s.csv"%(common.safe_filename(opts.PART)+str(time.strftime('%Y_%m_%dT%H_%M_%S'))))
 	sTitle = "Magnetic Screening Test, Raw Data"
 	tlvmr.write_mag_vecs(
 		sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.sMsg)

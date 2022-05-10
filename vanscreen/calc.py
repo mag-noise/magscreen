@@ -322,6 +322,7 @@ def dipole_from_rotation(lDsRaw):
 		#    to what?  Each sensor is rotated about it's Z axis compared to the
 		#    others, so maybe the Z angle is actually what's desired here.
 		#    Not sure.  -cwp
+
 		m = moment_from_bvec(rDist_m, _mag(Bmax_nT)*1e-9, lZangle[-1],  lXangle[-1])
 
 		lDipole.append(m)
@@ -343,7 +344,16 @@ def dipole_from_rotation(lDsRaw):
 	#  the data aBmax_T.  In this way it determines what magnetic moment would
 	#  be needed to best produce the given values.
 	#
-	rMomentFit, mCovariance = curve_fit(bmag_from_moment, aDist_m, aBmax_T)
+	VMR_err = 4e-9 #Tesla
+	'''	
+	error of .05 centimeters, since distance in magnetic field calculation as 1/r^3, 
+	error function of sqrt(dB/dr^2 * error_r^2)
+	'''
+	dist_err = .0005 #meters
+	dist_err_calc = ( ((3/2)*(((1.256*10**-6)*(moment))/(2*3.14*dist**4)))**2 * (dist_err)**2 )**.5
+	tot_err = (( dist_err_calc**2 + VMR_err**2 )**.5)*1e9 #independent error combined
+
+	rMomentFit, mCovariance = curve_fit(bmag_from_moment, aDist_m, aBmax_T, sigma=tot_err)
 
 	# estimated covariance of the moment fit, aka one standard deviation.
 	rMomentErr = np.sqrt(np.diag(mCovariance)) 

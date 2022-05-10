@@ -105,14 +105,29 @@ following location is recommended:
 
 ## Calculations
 
-The data will be collected by three Twinleaf VMR magnetometers at three different distances away using the mag_screen program. The object being screened has an arbitrary dipole moment.  As the object is rotated it's internal field will periodically be positioned at a maxima and minima from each sensor.  Over the course of a few rotations the magnetometers will measure the sinusoidal x, y, z functions of the magnetic field B from the object. Using Welch's method, we will collapse the sinusoidal field components into a power spectral density, which when taken the square root of, will give us x, y, z scalar values of the magnetic field B.
+The data will be collected by three Twinleaf VMR magnetometers at three different
+distances away using the mag_screen program. The object being screened has an
+arbitrary dipole moment.  As the object is rotated it's internal field will 
+periodically be positioned at a maxima and minima from each sensor.  Over the course
+of a few rotations the magnetometers will measure the sinusoidal x, y, z functions
+of the magnetic field B from the object. Using Welch's method, we will collapse the
+sinusoidal field components into a power spectral density, which when taken the
+square root of, will give us x, y, z scalar values of the magnetic field B.
 
-The Bx, By, Bz data from each sensor (now 9 total points) is then put into a Python 3 function to project a dipole moment and stray field.  Using the law of cosines, we can find the angle of the magnetic field and subsequently dipole moment relative to the z-axis. Knowing this angle, we can project these values into their most aggressive orientation (directly parallel with the z-axis), giving us 6 total data points. Each magnetometer projects an aggressive dipole moment and an aggressive magnetic field for its respective distance. These data points are then plot and best-fit to a function 1/distance^3. The best fit taken is the new dipole moment with error being calculated using the SciPy library curve_fit function. Using the calculated best-fit aggressive dipole, we calculate the stray field away at one meters. The function finds 3 things:(1) The best fit dipole moment from the object's data, (2) The stray field in nanoTesla 1 meter away, and (3) an indication the object has passed the test if its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the dipole moment is .0475 < m < .05.
+The Bx, By, Bz data from each sensor (now 9 total points) is then put into a Python 3
+function to project a dipole moment and stray field.  Using the law of cosines, we can
+find the angle of the magnetic field and subsequently dipole moment relative to the
+z-axis. Knowing this angle, we can project these values into their most aggressive
+orientation (directly parallel with the z-axis), giving us 6 total data points. Each
+magnetometer projects an aggressive dipole moment and an aggressive magnetic field for
+its respective distance. These data points are then plot and best-fit to a function 
+`1/distance^3`. The best fit taken is the new dipole moment with error being calculated
+using the SciPy library curve_fit function. Using the calculated best-fit aggressive
+dipole, we calculate the stray field away at one meters. The function finds 3 things:
 
+	1. the best fit dipole moment from the object's data, 
+	2. the stray field in nanoTesla 1 meter away, and,
+	3. an indication the object has passed the test.
 
-## Extra
-
-Original text:
-
-
-The data from this function should be organized and saved into a .csv file. There should be four columns. (1) Object name, (2) Dipole moment (A\*m^2), (3) Stray field 1 meter away (nT), (4) Pass/Fail/Caution? The best fit graphs for each object need to be organized and saved into a .pdf file.
+If its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the
+dipole moment is .0475 < m < .05.

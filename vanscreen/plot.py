@@ -71,9 +71,9 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 
 	Args:
 		lDs (list[semcsv.Dataset]) : A list of datasets to plot.  The first 
-			three of theses will be included in the returned fig.
+			three of these will be included in the returned fig.
 
-		dProps (dict): Global properties that apply to all givendatasets
+		dProps (dict): Global properties that apply to all given datasets
 
 		tFigSz (2-tuple): The width and heigh in inches for the plot area
 
@@ -84,8 +84,11 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 
 	fig = Figure(figsize=tFigSz)
 
-	# Set X & Y axis ranges the same for all plots in a column.
+	# Set X & Y axis ranges the same for all plots in a column.  By default this
+	# disables the tick labels for common axes.  Sometimes this is not desired
+	# lets manually turn them back on with Axes.tick_params() later on...
 	llAx = fig.subplots(nrows=3, ncols=2, sharex='col', sharey='col')
+
 	fig.subplots_adjust(wspace=0.4, hspace=0.4, left=0.17)
 
 	fig.suptitle('Mag Screen Raw Data for:\n%s\non %s'%(
@@ -111,7 +114,9 @@ def raw_plot3(dProps, lDs, tFigSz=(7.5, 10)):
 		axTime = llAx[iRow, 0]
 		axFreq = llAx[iRow, 1]
 		axTime.grid(True)
-		axFreq.grid(True)
+		axFreq.grid(True)                         
+		axTime.tick_params(labelbottom=True) # were auto-turned off by 
+		axFreq.tick_params(labelbottom=True) # subplots() call above
 
 		# Loop over components from a single sensor make time series and freq plot
 		# Save the frequency data for later annotation.  We need to plot everything
@@ -228,12 +233,6 @@ def dipole_plot(dProps, lDs, tFigSz=(7.5, 10)):
 	axDipole.legend()
 
 	# Calculate a couple other items put them on the plot
-	# FIXME: Values look suspicious
-	#(chi_sq, p_val) = stats.chisquare(
-	#	f_obs=Bdipole, f_exp=calc.bmag_from_moment(dist,moment)
-	#)
-
-
 	lNotes = [
 		'Timestamp:            %s'%(dProps['Timestamp'][0]),
 		#'chi-squared = %0.3f'%chi_sq, 'p-value = %0.3f'%p_val,

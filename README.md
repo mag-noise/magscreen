@@ -1,7 +1,6 @@
 # Magnetic Cleanliness Screening
 
-*Source Authors: Chris Piker, Cole Dorman*
-*Apparatus & Measurment Concept: David Miles*
+*Source Authors: Chris Piker, Cole Dorman*;  *Apparatus & Measurment Concept: David Miles*
 
 Magnetic cleanliness screening is the process of determining the magnetic
 properties of various parts before they are added to instrumentation that

@@ -3,4 +3,4 @@ vanscreen/__pycache__
 *.egg-info
 *.csv
 *.pdf
-
+dist

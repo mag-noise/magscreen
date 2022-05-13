@@ -16,9 +16,9 @@ from matplotlib.figure import Figure
 
 
 # Our stuff
-from vanscreen.common import BreakFormatter
-import vanscreen.semcsv as semcsv
-import vanscreen.calc as calc
+from magscreen.common import BreakFormatter
+import magscreen.semcsv as semcsv
+import magscreen.calc as calc
 
 perr = sys.stderr.write  # shorten a long function name
 
@@ -326,7 +326,7 @@ def screen_plot_png(dProps, lDs, sOutFile):
 	if len(sDir) > 0:
 		os.makedirs(sDir, 0o755, exist_ok=True)
 	
-	dMeta = {'Software': 'vanscreen 0.2'}
+	dMeta = {'Software': 'magscreen 0.3'}
 	if 'Title' in dProps: dMeta['Title'] = dProps['Title'][0]
 	if 'User' in dProps: dMeta['Author'] = dProps['User'][0]
 	if 'Note' in dProps: dMeta['Description'] = dProps['Note'][0]

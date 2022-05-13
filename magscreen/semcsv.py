@@ -49,7 +49,7 @@ perr = sys.stderr.write  # shorten a long function name
 # G ,Part     ,mark 1 hammer,     ,         ,  ,        ,        ,        ,
 # G ,Timestamp,2021-12-21T18:51:01,,        ,  ,        ,        ,        ,
 # G ,User     ,Chris    ,         ,         ,  ,        ,        ,        ,
-# G ,Software ,vanscreen-0.2,     ,         ,  ,        ,        ,        ,
+# G ,Software ,magscreen-0.2,     ,         ,  ,        ,        ,        ,
 #   ,         ,         ,         ,         ,  ,        ,        ,        ,
 # F ,Interleave,A-E     ,F-J      ,K-O      ,  ,        ,        ,        , <--(Splits Rows)
 #   ,         ,         ,         ,         ,  ,        ,        ,        ,

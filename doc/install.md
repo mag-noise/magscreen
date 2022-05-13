@@ -55,28 +55,28 @@ that we installed above.
 ## Install the Screening Programs
 
 The screening program is a standard python package and may be installed using
-`pip` as well.  Run the following command to download and install the vanscreen
+`pip` as well.  Run the following command to download and install the magscreen
 package.
 ```bash
-git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen  # Get software
+git clone https://research-git.uiowa.edu/space-physics/tracers/magic/magscreen  # Get software
 # Use your HawkID when prompted
 ```
 You can test the software from the source code directory without installing in.
 This is handy for testing software changes. Example commands for doing so follow.
 ```bash
-git clone https://research-git.uiowa.edu/space-physics/tracers/magic/vanscreen   # Get software
-cd vanscreen                                                           # Go to source directory
+git clone https://research-git.uiowa.edu/space-physics/tracers/magic/magscreen   # Get software
+cd magscreen                                                           # Go to source directory
 
 # Assuming sensors placed at 11, 15 & 20 cm
-set PYTHONPATH=. && python vanscreen/mag_screen.py -r 11,15,20 test_object  # Windows
-env PYTHONPATH=. python3 vanscreen/mag_screen.py -r 11,15,20 test_object    # Linux/MacOS
+set PYTHONPATH=. && python magscreen/mag_screen.py -r 11,15,20 test_object  # Windows
+env PYTHONPATH=. python3 magscreen/mag_screen.py -r 11,15,20 test_object    # Linux/MacOS
 ```
 
 To install the software so thats available outside the source directory:
 ```bash
 cd /your/local/clone/directory
-pip install .\vanscreen  # Install software (windows)
-pip install ./vanscreen  # Install software (linux)
+pip install .\magscreen  # Install software (windows)
+pip install ./magscreen  # Install software (linux)
 mag_screen -h            # A basic test, no sensors necessary
 ```
 

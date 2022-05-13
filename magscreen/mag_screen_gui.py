@@ -27,7 +27,7 @@ import os, glob
 
 import tkinter as tk
 
-from vanscreen import *
+from magscreen import *
 
 #get new B list every time
 #delete log file

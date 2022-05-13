@@ -12,15 +12,15 @@ import getpass       # Username
 import platform      # Hostname
 from os.path import join as pjoin
 
-import vanscreen.common as common # Local modules
-import vanscreen.tlvmr as tlvmr
-import vanscreen.semcsv as semcsv
-import vanscreen.plot as plot
-import vanscreen.summary as summary
+import magscreen.common as common # Local modules
+import magscreen.tlvmr as tlvmr
+import magscreen.semcsv as semcsv
+import magscreen.plot as plot
+import magscreen.summary as summary
 
 # The version of this software, need to be able to set this via the release
 # process somehow
-g_sVersion = "vanscreen-0.3"
+g_sVersion = "magscreen-0.3"
 
 # Output stuff
 #  This is no longer needed using AGG matplotlib backend...

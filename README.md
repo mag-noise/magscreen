@@ -1,4 +1,4 @@
-# Magnetic Cleanliness Screening
+# Magnetic Cleanliness Screening via Constant Rotation
 
 *Source Authors: Chris Piker, Cole Dorman*;  *Apparatus & Measurment Concept: David Miles*
 
@@ -100,11 +100,7 @@ mag_screen_plot  # Reads raw *.csv data and generates single test summary plots
 mag_screen_sum   # Reads raw *.csv data and updates a running summary of part test data.
 ```
 
-After data are collected, files should be moved to a long term storage location.  The
-following location is recommended:
-
-  **FIXME: State where the output data are saved/tracked in the larger context of the
-    development program**
+After data are collected, files should be moved to a long term storage location.  
 
 ## Calculations
 

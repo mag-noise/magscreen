@@ -1,4 +1,4 @@
-# Magnetic Cleanliness Screening
+# Magnetic Cleanliness Screening via Constant Rotation
 
 *Source Authors: Chris Piker, Cole Dorman*;  *Apparatus & Measurment Concept: David Miles*
 

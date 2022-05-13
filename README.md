@@ -1,19 +1,23 @@
 # Magnetic Cleanliness Screening
 
-Authors: Cole Dorman, Chris Piker
+*Source Authors: Chris Piker, Cole Dorman*
+*Apparatus & Measurment Concept: David Miles*
 
-## Summary
+Magnetic cleanliness screening is the process of determining the magnetic
+properties of various parts before they are added to instrumentation that
+measures magnetic fields.  The properties of interest are the stray field
+and dipole moment.  Typically a full field characterization is unnecessary.
+A simple pass/fail measurement of the worst possible magnetic field distortion
+created by an object is typically good enough for instrument construction
+purposes.  This software is intended for use with an apparatus that rotates
+the part to be screened at a constant rate while the 3-axis magnetic field
+is regularly sampled at 2-N locations in space near the part.  *Magscreen* 
+was written using the [TwinLeaf VMR](https://github.com/twinleaf/tio-python) 
+sensors for thier simple serial interface, though it easily could be adapted
+for other equipment.
 
-*fixme: Insert sentence on why the stray field and dipole moment must be know for parts on spacecraft*
 
-Magnetic cleanliness screening is the process of determining the magnetic properties
-of various parts before they are added to instrument and satellite  assemblies.  The
-properties of interest are the stray field and dipole moment.  To determine these
-properties the part in question is rotated in the presence of three, three-axis,
-magnetometers.  Raw field measurements collected are then input into calculations
-detailed below which provide the dipole moment and stray field at 1 meter.
-
-## Apparatus
+## Screening Apparatus
 
 The following equipment is needed:
 

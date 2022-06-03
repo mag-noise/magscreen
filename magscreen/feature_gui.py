@@ -31,9 +31,7 @@ class Globals:
     default_rate = 10
     
 
-    ''' gonna need a function for the third frame because this will change. This
-       frame will house the Sensor serial number comboboxes and radii entries. Size
-       will be 225x700'''
+    
     
 
 def initializeGUI(): 

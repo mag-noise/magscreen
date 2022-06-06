@@ -32,7 +32,31 @@ class Globals:
     default_rate = 10
     
     secondWindow = None
+    treeContainer = None
+ 
     
+''' Function will create file tree of directories.'''
+def fileTree():
+    
+    stack = []
+    path = os.getcwd()
+    while(os.path.split(path)[1] != ''):
+        f = os.path.split(path)         # tuple of (head, tail)
+        x = f[1]            # get directory
+        stack.append(x)     # add directory to stack
+        path = f[0]         # update path
+    return stack
+
+    # Now create the tree from the stack.
+    tree = ttk.Treeview(Globals.treeContainer, fill='both', expand=True)
+    tree.heading('text', text = 'Directory/Folder', anchor='w')
+    
+    
+        
+    
+    
+    
+''' Function creates second window with all the options for a run. '''    
 def launch():
     Globals.secondWindow = Toplevel()
     Globals.secondWindow.title("MagScreen Testing")
@@ -207,13 +231,13 @@ def initializeGUI():
     mainWindow.pack(fill='both', expand=True)
     
     ''' Create subcontainers. '''
-    treeContainer = Frame(mainWindow, bg='blue', width=150, height=375, pady=10, padx=10)
+    Globals.treeContainer = Frame(mainWindow, bg='blue', width=150, height=375, pady=10, padx=10)
     topContainer = Frame(mainWindow, bg='cyan', width=500, height=75, pady=10, padx=10)
     midContainer = Frame(mainWindow, bg='yellow', width=500, height=225, pady=10, padx=10)
     bottomContainer = Frame(mainWindow, bg='black', width=500, height=75, pady=10, padx=10)
     
     ''' Place subcontainers in main window. '''
-    treeContainer.grid(row=0, column=0, rowspan=3)
+    Globals.treeContainer.grid(row=0, column=0, rowspan=3)
     topContainer.grid(row=0, column=1, columnspan=3)
     midContainer.grid(row=1, column=1, columnspan=3)
     bottomContainer.grid(row=2, column=1, columnspan=3)
@@ -222,6 +246,7 @@ def initializeGUI():
     
     
     '''Place the widgets in tree container. '''
+    
     
     ''' Create the widgets for top container. New run button right now. '''
     newRunButton = Button(topContainer, text='New Run', command=launch)

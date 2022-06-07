@@ -8,6 +8,7 @@ Created on Mon Jun  6 08:43:18 2022
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
+from PIL import Image, ImageTk
 import os
 
 
@@ -33,6 +34,7 @@ class Globals:
     
     secondWindow = None
     treeContainer = None
+    midContainer = None
     tree = None
     cwd = os.getcwd()
     optionsEntry = None
@@ -69,7 +71,23 @@ def updateCWD():
     Globals.tree.destroy()
     fileTree()
     return 
-        
+
+''' Function to initialize the main window. Can update later to show 
+    different things based on first run or not.'''
+def mainPage():
+    
+    ''' Create two subcontainers within the midContainer. '''
+    leftFrame = Frame(Globals.midContainer, width=240, height=225)
+    rightFrame = Frame(Globals.midContainer, width=240, height=225)
+    
+    ''' Place the left and right frame withing the midContainer. '''
+    leftFrame.pack(side='left')
+    rightFrame.pack(side='right')
+    
+    ''' Place image for now in left frame. '''
+    img_path = "mag_screen_apperatus.png"
+    photo_image = ImageTk.PhotoImage(img_path)
+    label = ttk.Label(leftFrame, image=photo_image).pack(fill='both', expand=True)
     
     
     
@@ -250,13 +268,13 @@ def initializeGUI():
     ''' Create subcontainers. '''
     Globals.treeContainer = Frame(mainWindow, bg='blue', width=150, height=375, pady=10, padx=10)
     topContainer = Frame(mainWindow, bg='cyan', width=500, height=75, pady=10, padx=10)
-    midContainer = Frame(mainWindow, bg='yellow', width=500, height=225, pady=10, padx=10)
+    Globals.midContainer = Frame(mainWindow, bg='yellow', width=500, height=225, pady=10, padx=10)
     bottomContainer = Frame(mainWindow, bg='black', width=500, height=75, pady=10, padx=10)
     
     ''' Place subcontainers in main window. '''
     Globals.treeContainer.grid(row=0, column=0, rowspan=3)
     topContainer.grid(row=0, column=1, columnspan=3)
-    midContainer.grid(row=1, column=1, columnspan=3)
+    Globals.midContainer.grid(row=1, column=1, columnspan=3)
     bottomContainer.grid(row=2, column=1, columnspan=3)
     
     
@@ -282,9 +300,8 @@ def initializeGUI():
     
 def GUI():
     initializeGUI()
-    
-    ''' Create and place the widgets for tree container'''
+
     fileTree()
-    
+    # mainPage()
     
     Globals.root.mainloop()

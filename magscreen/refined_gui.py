@@ -33,25 +33,42 @@ class Globals:
     
     secondWindow = None
     treeContainer = None
+    tree = None
+    cwd = os.getcwd()
+    optionsEntry = None
  
     
 ''' Function will create file tree of directories.'''
 def fileTree():
-    
-    stack = []
-    path = os.getcwd()
-    while(os.path.split(path)[1] != ''):
-        f = os.path.split(path)         # tuple of (head, tail)
-        x = f[1]            # get directory
-        stack.append(x)     # add directory to stack
-        path = f[0]         # update path
-    return stack
+    listOfDirs = os.listdir(Globals.cwd)
+    dirName = os.path.split(Globals.cwd)    
 
-    # Now create the tree from the stack.
-    tree = ttk.Treeview(Globals.treeContainer, fill='both', expand=True)
-    tree.heading('text', text = 'Directory/Folder', anchor='w')
+    # Now create the tree.
+    Globals.tree = ttk.Treeview(Globals.treeContainer)
+    Globals.tree.heading('#0', text=dirName[0], anchor='w')
     
+    # add data
+    Globals.tree.insert('', tk.END, text=dirName[1], iid=0, open=True)
     
+    # adding children of node
+    iidCount = 1
+    for i in range(len(listOfDirs)):
+        name = listOfDirs[i]
+        Globals.tree.insert('', tk.END, text=name, iid=iidCount, open=False)
+        Globals.tree.move(iidCount, 0, i)
+        
+        iidCount = iidCount + 1
+        
+    Globals.tree.pack(side='top', fill='both', expand=True)
+        
+    
+''' Function will allow user to change where the files get saved. 
+    This will also need to update the fileTree. '''
+def updateCWD():
+    Globals.cwd = Globals.optionsEntry.get()
+    Globals.tree.destroy()
+    fileTree()
+    return 
         
     
     
@@ -242,11 +259,6 @@ def initializeGUI():
     midContainer.grid(row=1, column=1, columnspan=3)
     bottomContainer.grid(row=2, column=1, columnspan=3)
     
-    ''' Create the widgets for tree container.'''
-    
-    
-    '''Place the widgets in tree container. '''
-    
     
     ''' Create the widgets for top container. New run button right now. '''
     newRunButton = Button(topContainer, text='New Run', command=launch)
@@ -256,14 +268,23 @@ def initializeGUI():
     newRunButton.pack(side='right', expand=True, fill='both', padx=70, pady=10)
     welcomeLabel.pack(side='left', expand=True, fill='both', padx=40, pady=10)
     
+    ''' Create options entry and button for user to change where the files are saved. Will 
+    go in treeContainer.'''
+    Globals.optionsEntry = ttk.Entry(Globals.treeContainer, text=os.getcwd())
     
     
+    changeButton = ttk.Button(Globals.treeContainer, text='Change', command=updateCWD)
     
+    ''' Place options entry and change button into tree container. '''
+    Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=20, pady=50)
+    changeButton.pack(side='bottom', fill='x', expand=True, padx=20, pady=10)
     
-    
-    
-        
     
 def GUI():
     initializeGUI()
+    
+    ''' Create and place the widgets for tree container'''
+    fileTree()
+    
+    
     Globals.root.mainloop()

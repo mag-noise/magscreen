@@ -8,6 +8,8 @@ Created on Mon Jun  6 08:43:18 2022
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
+from tkinter.messagebox import showerror, showwarning, showinfo
 from PIL import Image, ImageTk
 import os
 
@@ -46,7 +48,8 @@ def fileTree():
     dirName = os.path.split(Globals.cwd)    
 
     # Now create the tree.
-    Globals.tree = ttk.Treeview(Globals.treeContainer)
+    Globals.tree = ttk.Treeview(Globals.treeContainer, height=20)
+    print(Globals.tree.configure().keys())
     Globals.tree.heading('#0', text=dirName[0], anchor='w')
     
     # add data
@@ -77,17 +80,26 @@ def updateCWD():
 def mainPage():
     
     ''' Create two subcontainers within the midContainer. '''
-    leftFrame = Frame(Globals.midContainer, width=240, height=225)
-    rightFrame = Frame(Globals.midContainer, width=240, height=225)
+    # leftFrame = Frame(Globals.midContainer, width=240, height=225)
+    rightFrame = Frame(Globals.midContainer, width=280, height=225)
     
     ''' Place the left and right frame withing the midContainer. '''
-    leftFrame.pack(side='left')
-    rightFrame.pack(side='right')
+    # leftFrame.pack(side='left', fill='both', expand=True)
+    rightFrame.pack(side='left', fill='both', expand=True)
     
-    ''' Place image for now in left frame. '''
+    ''' Place image for now in left frame.
     img_path = "mag_screen_apperatus.png"
-    photo_image = ImageTk.PhotoImage(img_path)
-    label = ttk.Label(leftFrame, image=photo_image).pack(fill='both', expand=True)
+    photo_image = ImageTk.PhotoImage(Image.open(img_path))
+    label = ttk.Label(leftFrame, image=photo_image)
+    label.pack(fill='both', expand=True)'''
+    
+    ''' Create text box and scrollbar for right frame.'''
+    st = ScrolledText(rightFrame, wrap=tk.WORD, width=70, height=10, font=('Book Antiqua', 12))
+    st.insert('1.0', "Magnetic cleanliness screening is the process of determining the magnetic properties of various parts before they are added to instrumentation that measures magnetic fields. The properties of interest are the stray field and dipole moment. Typically a full field characterization is unnecessary. A simple pass/fail measurement of the worst possible magnetic field distortion created by an object is typically good enough for instrument construction purposes. This software is intended for use with an apparatus that rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR sensors for thier simple serial interface, though it easily could be adapted for other equipment.")
+    st['state'] = 'disabled'
+    
+    ''' Place the scrolled text widget in right frame.'''
+    st.pack(fill='both', expand=True)
     
     
     
@@ -133,7 +145,7 @@ def launch():
     tech = ttk.Entry(topFrame, textvariable=Globals.default_tech)
     tech.insert(0, Globals.default_tech)
    
-    part_label = ttk.Label(topFrame, text="Part:", font=("Calibri", 12))
+    part_label = ttk.Label(topFrame, text="Part:", font=('Calibri', 12))
     part = ttk.Entry(topFrame)
     part.insert(0, Globals.default_part)
    
@@ -260,16 +272,50 @@ def initializeGUI():
     Globals.root.title("MagScreen")
     
     ''' Create main window. '''
-    mainWindow = Frame(Globals.root, bg='red', width=600, height=350, pady=10, padx=10)
+    mainWindow = Frame(Globals.root, width=600, height=350, pady=10, padx=10)
     
     ''' Place main window. '''
     mainWindow.pack(fill='both', expand=True)
     
+    ''' Create menu bar for main window. '''
+    menubar = Menu(Globals.root)
+    Globals.root.config(menu=menubar)
+    
+    ''' Create file menu. '''
+    file_menu = Menu(menubar, tearoff=0)
+    
+    ''' Add commands to file_menu. '''
+    file_menu.add_command(label='New Run', command=launch)
+    file_menu.add_separator()
+    
+    file_menu.add_command(label='Exit', command=Globals.root.destroy)
+    
+    ''' Add file_menu to menubar. '''
+    menubar.add_cascade(label="File", menu=file_menu, underline=0)
+    
+    ''' Create view menu. '''
+    view_menu = Menu(menubar, tearoff=0)
+    
+    ''' Add commands to view menu. '''
+    view_menu.add_command(label='Recent')
+    
+    ''' Add view menu to menubar. '''
+    menubar.add_cascade(label='View', menu=view_menu, underline=0)
+    
+    ''' Create Help menu. '''
+    help_menu = Menu(menubar, tearoff=0)
+    
+    ''' Add commands to help menu. '''
+    help_menu.add_command(label='Help', command=lambda: showinfo(title='Help', message='Press NEW RUN for new run. \nPress BROWSE to change file location. \nPress FILE, EXIT to close MagScreen.'))
+    
+    ''' Add help menu to menubar.'''
+    menubar.add_cascade(label='Help', menu=help_menu, underline=0)
+    
     ''' Create subcontainers. '''
-    Globals.treeContainer = Frame(mainWindow, bg='blue', width=150, height=375, pady=10, padx=10)
-    topContainer = Frame(mainWindow, bg='cyan', width=500, height=75, pady=10, padx=10)
-    Globals.midContainer = Frame(mainWindow, bg='yellow', width=500, height=225, pady=10, padx=10)
-    bottomContainer = Frame(mainWindow, bg='black', width=500, height=75, pady=10, padx=10)
+    Globals.treeContainer = Frame(mainWindow, width=150, height=375, pady=10, padx=10)
+    topContainer = Frame(mainWindow, width=500, height=75, pady=10, padx=20)
+    Globals.midContainer = Frame(mainWindow, width=500, height=225, pady=10, padx=10)
+    bottomContainer = Frame(mainWindow, width=500, height=75, pady=10, padx=20)
     
     ''' Place subcontainers in main window. '''
     Globals.treeContainer.grid(row=0, column=0, rowspan=3)
@@ -279,29 +325,30 @@ def initializeGUI():
     
     
     ''' Create the widgets for top container. New run button right now. '''
-    newRunButton = Button(topContainer, text='New Run', command=launch)
-    welcomeLabel = ttk.Label(topContainer, text='Welcome to MagScreen!', font=("Calibri", 14) )
+    newRunButton = Button(topContainer, text='New Run', font=('Book Antiqua', 10), command=launch)
+    welcomeLabel = ttk.Label(topContainer, text='Welcome to MagScreen!', font=('Book Antiqua', 16) )
+    blankLabel = ttk.Label(topContainer, text=' ')
     
     ''' Place the widgets in top container. New run button. '''
-    newRunButton.pack(side='right', expand=True, fill='both', padx=70, pady=10)
-    welcomeLabel.pack(side='left', expand=True, fill='both', padx=40, pady=10)
+    newRunButton.pack(side='right', expand=True, fill='both', padx=40, pady=10)
+    welcomeLabel.pack(side='left', expand=True, fill='both', padx=10, pady=10)
+    blankLabel.pack(side='left', expand=True, fill='both', padx=80, pady=10)
+    
     
     ''' Create options entry and button for user to change where the files are saved. Will 
     go in treeContainer.'''
     Globals.optionsEntry = ttk.Entry(Globals.treeContainer, text=os.getcwd())
-    
-    
-    changeButton = ttk.Button(Globals.treeContainer, text='Change', command=updateCWD)
+    browseButton = ttk.Button(Globals.treeContainer, text='Browse', command=updateCWD)
     
     ''' Place options entry and change button into tree container. '''
-    Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=20, pady=50)
-    changeButton.pack(side='bottom', fill='x', expand=True, padx=20, pady=10)
+    Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
+    browseButton.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
     
     
 def GUI():
     initializeGUI()
 
     fileTree()
-    # mainPage()
+    mainPage()
     
     Globals.root.mainloop()

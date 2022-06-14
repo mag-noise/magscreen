@@ -10,6 +10,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showerror, showwarning, showinfo
+from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 import os
 
@@ -22,7 +23,7 @@ class Globals:
     mainFrame = None
     topFrame = None
     window = None 
-    num_sensors = 3
+    default_num_sensors = 8
     selected_num_sensors = None
     sensor_A = 'DT04H6OX'
     sensor_B = 'DT04H6NY'
@@ -34,12 +35,62 @@ class Globals:
     default_system = 'Enter system name'
     default_rate = 10
     
+    
     secondWindow = None
     treeContainer = None
     midContainer = None
     tree = None
     cwd = os.getcwd()
     optionsEntry = None
+    
+    scrollable_frame = None
+    sensor_list = []
+    
+    
+''' Function changes current working directory. Calls function to remake tree.'''    
+def select_directory():
+    
+    Globals.cwd = fd.askdirectory()
+    updateCWD()
+    
+    return
+
+
+
+''' Function adds new sensor serial number entry, check box, and entry for radii. '''
+def add_new_sensor():
+    Globals.sensor_frame = ttk.Frame(Globals.scrollable_frame)
+    Globals.sensor_frame.pack(side='top', fill='x')
+    Globals.sensor_list.append(Globals.sensor_frame)
+    
+    sensor = tk.StringVar()
+    sensor_cb = ttk.Combobox(Globals.sensor_frame, width=10, textvariable=sensor)
+    sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
+    sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
+    
+    radii = ttk.Entry(Globals.sensor_frame, width=5)
+    radii.pack(side='left', fill='both', padx=30, pady=10)
+    
+    state = tk.IntVar()
+    checkbox = ttk.Checkbutton(Globals.sensor_frame, variable=state)
+    checkbox.pack(side='left', fill='both', padx=15, pady=10)
+
+    return
+
+''' Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. '''
+def remove_sensor():
+    if len(Globals.sensor_list) < 3:
+        # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
+        return
+    else:
+        last_sensor = Globals.sensor_list[-1]
+        last_sensor.destroy()
+        Globals.sensor_list = Globals.sensor_list[:-1]
+        return
+    
+''' Function is responsible for the enabling/disabling of sensor serial and radii entries. '''
+
+    
  
     
 ''' Function will create file tree of directories.'''
@@ -48,8 +99,8 @@ def fileTree():
     dirName = os.path.split(Globals.cwd)    
 
     # Now create the tree.
-    Globals.tree = ttk.Treeview(Globals.treeContainer, height=20)
-    print(Globals.tree.configure().keys())
+    Globals.tree = ttk.Treeview(Globals.treeContainer, height=10)
+    # print(Globals.tree.configure().keys())
     Globals.tree.heading('#0', text=dirName[0], anchor='w')
     
     # add data
@@ -70,7 +121,7 @@ def fileTree():
 ''' Function will allow user to change where the files get saved. 
     This will also need to update the fileTree. '''
 def updateCWD():
-    Globals.cwd = Globals.optionsEntry.get()
+    # Globals.cwd = Globals.optionsEntry.get()
     Globals.tree.destroy()
     fileTree()
     return 
@@ -107,7 +158,7 @@ def mainPage():
 def launch():
     Globals.secondWindow = Toplevel()
     Globals.secondWindow.title("MagScreen Testing")
-    Globals.secondWindow.geometry('650x375')
+    Globals.secondWindow.geometry('650x510')
     
     ''' Create main containers '''
     topFrame = Frame(Globals.secondWindow, width=500, height=75, pady=10, padx=10)
@@ -165,23 +216,63 @@ def launch():
    
     ''' Create widgets for second frame. This is the combobox for number of sensors 
        being used. '''
-    num_sensors_label = ttk.Label(secondFrame, text='Number of Sensors:')
-    Globals.selected_num_sensors = tk.IntVar()
-    num_sensors_chosen = ttk.Combobox(secondFrame, width=5)
-    num_sensors_chosen["values"] = (2, 3, 4, 5)
-    num_sensors_chosen.state(["readonly"])
-    num_sensors_chosen.set(Globals.num_sensors)      # default number of sensors
+    # num_sensors_label = ttk.Label(secondFrame, text='Number of Sensors:')
+    # Globals.selected_num_sensors = tk.IntVar()
+    # num_sensors_chosen = ttk.Combobox(secondFrame, width=5)
+    # num_sensors_chosen["values"] = (2, 3, 4, 5)
+    # num_sensors_chosen.state(["readonly"])
+    # num_sensors_chosen.set(Globals.num_sensors)      # default number of sensors
     # num_sensors_chosen.bind('<<Combobox Selected>>', ***Need function here to change number of sensors***)
+    
+    addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=add_new_sensor)
    
+    removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=remove_sensor)
+    
     ''' Placing the combobox in the second frame. '''
-    num_sensors_label.pack(side='left')
-    num_sensors_chosen.pack(fill='x', side='left', padx=10)
+    # num_sensors_label.pack(side='left')
+    # num_sensors_chosen.pack(fill='x', side='left', padx=10)
+    
+    addSensorButton.pack(side='left', padx=10, pady=10)
+    
+    removeSensorButton.pack(side='left', padx=15, pady=10)
    
     ''' Create widgets for middle frame. This will be the label for serial numbers,
        comboboxes for serial numbers, label for radii, and entries for radii. Planning
        to use five, but will provide NA for comboboxes not used and 0 for entries not
        used.'''
-    sensor_serials_label = ttk.Label(middleFrame, text="Sensor Serial Numbers:")
+       
+    # Create canvas for middle frame. This will have a frame and scrollbar within it.
+    # Within this frame in the canvas, we will add the new sensor combobox, checkbox, and entry.
+    canvas = Canvas(middleFrame, width=300)
+    scrollbar = ttk.Scrollbar(middleFrame, orient='vertical', command=canvas.yview)
+    Globals.scrollable_frame = ttk.Frame(canvas)
+    Globals.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    
+    canvas.create_window((0,0), window=Globals.scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    canvas.pack(side='left', fill="both")
+    scrollbar.pack(side='left', fill='y')
+    
+    label_frame = ttk.Frame(Globals.scrollable_frame)
+    label_frame.pack(side='top', fill='x')
+    
+    sensor_serials_label = ttk.Label(label_frame, text="Sensor Serial Numbers:")
+    sensor_serials_label.pack(side='left', fill='y', padx=10, pady=10)
+    
+    #blank_label = ttk.Label(label_frame, text=' ')
+    #blank_label.pack(side='left', fill='y', padx=120, pady=10)
+    
+    radii_label = ttk.Label(label_frame, text="Radii [cm]:")
+    radii_label.pack(side='left', fill='y', padx=18, pady=10)
+        
+    
+    i = 0
+    while (i < Globals.default_num_sensors):
+        add_new_sensor()
+        i= i + 1
+    '''
+    
    
     sensor1 = tk.StringVar()
     sensor1_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor1)
@@ -215,8 +306,10 @@ def launch():
     radii3 = ttk.Entry(middleFrame, width=5)
     radii4 = ttk.Entry(middleFrame, width=5)
     radii5 = ttk.Entry(middleFrame, width=5)
+    
+    '''
    
-    ''' Place widgets into middle frame. '''
+    ''' Place widgets into middle frame. 
     sensor_serials_label.grid(column=0, row=1)
    
     sensor1_cb.grid(column=1, row=1, padx=10, pady=25)
@@ -232,6 +325,8 @@ def launch():
     radii3.grid(column=3, row=3, padx=10, pady=25)
     radii4.grid(column=4, row=3, padx=10, pady=25)
     radii5.grid(column=5, row=3, padx=10, pady=25)
+    
+    '''
    
     ''' Create widgets for bottom frame. This will be rate label and entry, 
        options button, and reset all button. '''
@@ -337,11 +432,11 @@ def initializeGUI():
     
     ''' Create options entry and button for user to change where the files are saved. Will 
     go in treeContainer.'''
-    Globals.optionsEntry = ttk.Entry(Globals.treeContainer, text=os.getcwd())
-    browseButton = ttk.Button(Globals.treeContainer, text='Browse', command=updateCWD)
+    # Globals.optionsEntry = ttk.Entry(Globals.treeContainer, text=os.getcwd())
+    browseButton = ttk.Button(Globals.treeContainer, text='Browse', command=select_directory)
     
     ''' Place options entry and change button into tree container. '''
-    Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
+    # Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
     browseButton.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
     
     
@@ -350,5 +445,6 @@ def GUI():
 
     fileTree()
     mainPage()
+    
     
     Globals.root.mainloop()

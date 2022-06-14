@@ -55,9 +55,48 @@ def select_directory():
     
     return
 
+class sensorStuff(ttk.Frame, ttk.Combobox, ttk.Checkbutton):
+    sensor_frame = None
+    sensor_cb = None
+    radii = None
+    checkbox = None
+    state = None
+    
+    sensor_list = []
+    
+    def __init__(self, container):
+        super().__init__(container)
+        
+    def add_new_sensor(self):
+        self.sensor_frame = ttk.Frame(Globals.scrollable_frame)
+        self.sensor_frame.pack(side='top', fill='x')
+        self.sensor_list.append(self.sensor_frame)
+        self.sensor = tk.StringVar()
+        self.sensor_cb = ttk.Combobox(self.sensor_frame, width=10, textvariable=self.sensor)
+        self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
+        self.sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
+        self.radii = ttk.Entry(self.sensor_frame, width=5)
+        self.radii.pack(side='left', fill='both', padx=30, pady=10)
+        # self.state = tk.IntVar()
+        self.checkbox = ttk.Checkbutton(self.sensor_frame, command=self.disable)
+        self.checkbox.pack(side='left', fill='both', padx=15, pady=10)
+        
+    def remove_sensor(self):
+        if len(self.sensor_list) < 3:
+            # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
+            return
+        else:
+            self.last_sensor = self.sensor_list[-1]
+            self.last_sensor.destroy()
+            self.sensor_list = self.sensor_list[:-1]
+        return
+    
+    def disable(self):
+        self.sensor_cb.config(state='disabled')
+        self.radii.config(state='disabled')
 
 
-''' Function adds new sensor serial number entry, check box, and entry for radii. '''
+''' Function adds new sensor serial number entry, check box, and entry for radii. 
 def add_new_sensor():
     Globals.sensor_frame = ttk.Frame(Globals.scrollable_frame)
     Globals.sensor_frame.pack(side='top', fill='x')
@@ -77,7 +116,7 @@ def add_new_sensor():
 
     return
 
-''' Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. '''
+Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. 
 def remove_sensor():
     if len(Globals.sensor_list) < 3:
         # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
@@ -87,6 +126,7 @@ def remove_sensor():
         last_sensor.destroy()
         Globals.sensor_list = Globals.sensor_list[:-1]
         return
+    '''
     
 ''' Function is responsible for the enabling/disabling of sensor serial and radii entries. '''
 
@@ -224,9 +264,11 @@ def launch():
     # num_sensors_chosen.set(Globals.num_sensors)      # default number of sensors
     # num_sensors_chosen.bind('<<Combobox Selected>>', ***Need function here to change number of sensors***)
     
-    addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=add_new_sensor)
+    s = sensorStuff(Globals.scrollable_frame)
+    
+    addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=s.add_new_sensor)
    
-    removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=remove_sensor)
+    removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=s.remove_sensor)
     
     ''' Placing the combobox in the second frame. '''
     # num_sensors_label.pack(side='left')
@@ -269,64 +311,8 @@ def launch():
     
     i = 0
     while (i < Globals.default_num_sensors):
-        add_new_sensor()
+        s.add_new_sensor()
         i= i + 1
-    '''
-    
-   
-    sensor1 = tk.StringVar()
-    sensor1_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor1)
-    sensor1_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C, Globals.no_sensor)
-    sensor1_cb.state(["readonly"])
-   
-    sensor2 = tk.StringVar()
-    sensor2_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor2)
-    sensor2_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C, Globals.no_sensor)
-    sensor2_cb.state(["readonly"])
-   
-    sensor3 = tk.StringVar()
-    sensor3_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor3)
-    sensor3_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C, Globals.no_sensor)
-    sensor3_cb.state(["readonly"])
-   
-    sensor4 = tk.StringVar()
-    sensor4_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor4)
-    sensor4_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C, Globals.no_sensor)
-    sensor4_cb.state(["readonly"])
-        
-    sensor5 = tk.StringVar()
-    sensor5_cb = ttk.Combobox(middleFrame, width=10, textvariable=sensor5)
-    sensor5_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C, Globals.no_sensor)
-    sensor5_cb.state(["readonly"])
-
-    radii_label = ttk.Label(middleFrame, text="Radii [cm]:")
-   
-    radii1 = ttk.Entry(middleFrame, width=5)
-    radii2 = ttk.Entry(middleFrame, width=5)
-    radii3 = ttk.Entry(middleFrame, width=5)
-    radii4 = ttk.Entry(middleFrame, width=5)
-    radii5 = ttk.Entry(middleFrame, width=5)
-    
-    '''
-   
-    ''' Place widgets into middle frame. 
-    sensor_serials_label.grid(column=0, row=1)
-   
-    sensor1_cb.grid(column=1, row=1, padx=10, pady=25)
-    sensor2_cb.grid(column=2, row=1, padx=10, pady=25)
-    sensor3_cb.grid(column=3, row=1, padx=10, pady=25)
-    sensor4_cb.grid(column=4, row=1, padx=10, pady=25)
-    sensor5_cb.grid(column=5, row=1, padx=10, pady=25)
-    
-    radii_label.grid(column=0, row=3)
-   
-    radii1.grid(column=1, row=3, padx=10, pady=25)
-    radii2.grid(column=2, row=3, padx=10, pady=25)
-    radii3.grid(column=3, row=3, padx=10, pady=25)
-    radii4.grid(column=4, row=3, padx=10, pady=25)
-    radii5.grid(column=5, row=3, padx=10, pady=25)
-    
-    '''
    
     ''' Create widgets for bottom frame. This will be rate label and entry, 
        options button, and reset all button. '''

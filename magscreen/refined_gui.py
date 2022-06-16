@@ -45,8 +45,6 @@ class Globals:
     
     scrollable_frame = None
     sensor_list = []
-    cb_list = []
-    checkbox_list = []
     
     
     
@@ -82,7 +80,7 @@ def add_new_sensor():
     sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
     sensor_cb['state'] = 'disable'
     sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
-    Globals.cb_list.append(sensor_cb)
+    
     
     radii = ttk.Entry(sensor_frame, width=5)
     radii['state'] = 'disable'

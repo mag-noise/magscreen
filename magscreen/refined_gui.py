@@ -284,6 +284,7 @@ def launch():
     # Within this frame in the canvas, we will add the new sensor combobox, checkbox, and entry.
     canvas = Canvas(middleFrame, width=320)
     scrollbar = ttk.Scrollbar(middleFrame, orient='vertical', command=canvas.yview)
+    scrollbar.bind("<MouseWheel>")
     Globals.scrollable_frame = ttk.Frame(canvas)
     Globals.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
     
@@ -346,7 +347,7 @@ def launch():
     
 def initializeGUI():
     Globals.root = Tk()
-    Globals.root.geometry('675x400')
+    Globals.root.geometry('840x400')
     Globals.root.title("MagScreen")
     
     ''' Create main window. '''

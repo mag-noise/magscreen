@@ -58,6 +58,7 @@ def select_directory():
     
     return
 
+''' Function enables and disables the sensor combobox and radii entry widget corresponding to the check button clicked.'''
 def enableDisable(children):    
     combobox = children[0]
     entry = children[1]
@@ -67,7 +68,7 @@ def enableDisable(children):
     else:
         combobox.configure(state='normal')
         entry.configure(state='normal')
-    
+    return
 
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''

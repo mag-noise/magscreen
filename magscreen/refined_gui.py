@@ -45,6 +45,9 @@ class Globals:
     
     scrollable_frame = None
     sensor_list = []
+    cb_list = []
+    checkbox_list = []
+    
     
     
 ''' Function changes current working directory. Calls function to remake tree.'''    
@@ -55,68 +58,43 @@ def select_directory():
     
     return
 
-class sensorStuff(ttk.Frame, ttk.Combobox, ttk.Checkbutton):
-    sensor_frame = None
-    sensor_cb = None
-    radii = None
-    checkbox = None
-    state = None
+def enableDisable(children):    
+    combobox = children[0]
+    entry = children[1]
+    if ('normal' in str(combobox['state'])):
+        combobox.configure(state='disable')
+        entry.configure(state='disable')
+    else:
+        combobox.configure(state='normal')
+        entry.configure(state='normal')
     
-    sensor_list = []
-    
-    def __init__(self, container):
-        super().__init__(container)
-        
-    def add_new_sensor(self):
-        self.sensor_frame = ttk.Frame(Globals.scrollable_frame)
-        self.sensor_frame.pack(side='top', fill='x')
-        self.sensor_list.append(self.sensor_frame)
-        self.sensor = tk.StringVar()
-        self.sensor_cb = ttk.Combobox(self.sensor_frame, width=10, textvariable=self.sensor)
-        self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
-        self.sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
-        self.radii = ttk.Entry(self.sensor_frame, width=5)
-        self.radii.pack(side='left', fill='both', padx=30, pady=10)
-        # self.state = tk.IntVar()
-        self.checkbox = ttk.Checkbutton(self.sensor_frame, command=self.disable)
-        self.checkbox.pack(side='left', fill='both', padx=15, pady=10)
-        
-    def remove_sensor(self):
-        if len(self.sensor_list) < 3:
-            # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
-            return
-        else:
-            self.last_sensor = self.sensor_list[-1]
-            self.last_sensor.destroy()
-            self.sensor_list = self.sensor_list[:-1]
-        return
-    
-    def disable(self):
-        self.sensor_cb.config(state='disabled')
-        self.radii.config(state='disabled')
 
 
-''' Function adds new sensor serial number entry, check box, and entry for radii. 
+''' Function adds new sensor serial number entry, check box, and entry for radii. '''
 def add_new_sensor():
-    Globals.sensor_frame = ttk.Frame(Globals.scrollable_frame)
-    Globals.sensor_frame.pack(side='top', fill='x')
-    Globals.sensor_list.append(Globals.sensor_frame)
+    sensor_frame = ttk.Frame(Globals.scrollable_frame)
+    sensor_frame.pack(side='top', fill='x')
+    Globals.sensor_list.append(sensor_frame)
     
     sensor = tk.StringVar()
-    sensor_cb = ttk.Combobox(Globals.sensor_frame, width=10, textvariable=sensor)
+    sensor_cb = ttk.Combobox(sensor_frame, width=10, textvariable=sensor)
     sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
+    sensor_cb['state'] = 'disable'
     sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
+    Globals.cb_list.append(sensor_cb)
     
-    radii = ttk.Entry(Globals.sensor_frame, width=5)
+    radii = ttk.Entry(sensor_frame, width=5)
+    radii['state'] = 'disable'
     radii.pack(side='left', fill='both', padx=30, pady=10)
     
-    state = tk.IntVar()
-    checkbox = ttk.Checkbutton(Globals.sensor_frame, variable=state)
+    checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
+    # checkbox.bind('<ButtonPress-1>', lambda event: enableDisable(sensor_frame.winfo_children()))
     checkbox.pack(side='left', fill='both', padx=15, pady=10)
-
+    
+    
     return
 
-Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. 
+''' Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. '''
 def remove_sensor():
     if len(Globals.sensor_list) < 3:
         # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
@@ -125,13 +103,7 @@ def remove_sensor():
         last_sensor = Globals.sensor_list[-1]
         last_sensor.destroy()
         Globals.sensor_list = Globals.sensor_list[:-1]
-        return
-    '''
-    
-''' Function is responsible for the enabling/disabling of sensor serial and radii entries. '''
-
-    
- 
+        return 
     
 ''' Function will create file tree of directories.'''
 def fileTree():
@@ -264,11 +236,11 @@ def launch():
     # num_sensors_chosen.set(Globals.num_sensors)      # default number of sensors
     # num_sensors_chosen.bind('<<Combobox Selected>>', ***Need function here to change number of sensors***)
     
-    s = sensorStuff(Globals.scrollable_frame)
+    # s = sensorStuff(Globals.scrollable_frame)
     
-    addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=s.add_new_sensor)
+    addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=add_new_sensor)
    
-    removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=s.remove_sensor)
+    removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=remove_sensor)
     
     ''' Placing the combobox in the second frame. '''
     # num_sensors_label.pack(side='left')
@@ -311,7 +283,7 @@ def launch():
     
     i = 0
     while (i < Globals.default_num_sensors):
-        s.add_new_sensor()
+        add_new_sensor()
         i= i + 1
    
     ''' Create widgets for bottom frame. This will be rate label and entry, 

@@ -5,6 +5,7 @@ Created on Mon Jun  6 08:43:18 2022
 @author: jonpe
 """
 
+import numpy as np
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
@@ -45,6 +46,7 @@ class Globals:
     
     scrollable_frame = None
     sensor_list = []
+    color_list = []
     
     
     
@@ -71,6 +73,24 @@ def enableDisable(children):
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''
 def add_new_sensor():
+    colors = ['snow', 'white smoke', 'gainsboro', 'floral white', 'old lace',
+          'linen', 'antique white', 'papaya whip', 'blanched almond', 'bisque', 'peach puff',
+          'navajo white', 'lemon chiffon', 'mint cream', 'azure', 'alice blue', 'lavender',
+          'lavender blush', 'misty rose', 'dark slate gray', 'dim gray', 'slate gray',
+          'light slate gray', 'gray', 'light grey', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
+          'slate blue', 'medium slate blue', 'light slate blue', 'medium blue', 'royal blue',  'blue',
+          'dodger blue', 'deep sky blue', 'sky blue', 'light sky blue', 'steel blue', 'light steel blue',
+          'light blue', 'powder blue', 'pale turquoise', 'dark turquoise', 'medium turquoise', 'turquoise',
+          'cyan', 'light cyan', 'cadet blue', 'aquamarine', 'dark green', 'dark olive green',
+          'dark sea green', 'sea green', 'medium sea green', 'light sea green', 'pale green', 'spring green',
+          'lawn green', 'medium spring green', 'green yellow', 'lime green', 'yellow green',
+          'forest green', 'olive drab', 'dark khaki', 'pale goldenrod',
+          'light yellow', 'yellow', 'gold', 'light goldenrod', 'goldenrod', 'dark goldenrod', 'rosy brown',
+          'indian red', 'saddle brown', 'sandy brown',
+          'dark salmon', 'salmon', 'light salmon', 'orange', 'dark orange',
+          'coral', 'light coral', 'tomato', 'orange red', 'red', 'hot pink', 'deep pink', 'pink', 'light pink',
+          'pale violet red', 'maroon', 'medium violet red', 'violet red']
+    
     sensor_frame = ttk.Frame(Globals.scrollable_frame)
     sensor_frame.pack(side='top', fill='x')
     Globals.sensor_list.append(sensor_frame)
@@ -85,6 +105,11 @@ def add_new_sensor():
     radii = ttk.Entry(sensor_frame, width=5)
     radii['state'] = 'disable'
     radii.pack(side='left', fill='both', padx=30, pady=10)
+    
+    color = colors[np.random.choice(range(96))]
+    Globals.color_list.append(color)
+    color_label = Label(sensor_frame, bg=color, width=2)
+    color_label.pack(side='left', padx=7, pady=10)
     
     checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
     # checkbox.bind('<ButtonPress-1>', lambda event: enableDisable(sensor_frame.winfo_children()))
@@ -102,6 +127,7 @@ def remove_sensor():
         last_sensor = Globals.sensor_list[-1]
         last_sensor.destroy()
         Globals.sensor_list = Globals.sensor_list[:-1]
+        Globals.color_list = Globals.color_list[:-1]
         return 
     
 ''' Function will create file tree of directories.'''
@@ -256,7 +282,7 @@ def launch():
        
     # Create canvas for middle frame. This will have a frame and scrollbar within it.
     # Within this frame in the canvas, we will add the new sensor combobox, checkbox, and entry.
-    canvas = Canvas(middleFrame, width=300)
+    canvas = Canvas(middleFrame, width=320)
     scrollbar = ttk.Scrollbar(middleFrame, orient='vertical', command=canvas.yview)
     Globals.scrollable_frame = ttk.Frame(canvas)
     Globals.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))

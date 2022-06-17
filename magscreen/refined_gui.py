@@ -52,10 +52,8 @@ class Globals:
     
 ''' Function changes current working directory. Calls function to remake tree.'''    
 def select_directory():
-    
     Globals.cwd = fd.askdirectory()
     updateCWD()
-    
     return
 
 ''' Function enables and disables the sensor combobox and radii entry widget corresponding to the check button clicked.'''
@@ -69,7 +67,6 @@ def enableDisable(children):
         combobox.configure(state='normal')
         entry.configure(state='normal')
     return
-
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''
 def add_new_sensor():
@@ -91,30 +88,32 @@ def add_new_sensor():
           'coral', 'light coral', 'tomato', 'orange red', 'red', 'hot pink', 'deep pink', 'pink', 'light pink',
           'pale violet red', 'maroon', 'medium violet red', 'violet red']
     
+    '''Create and place frame for sensor combobox, radii entry, color label, and checkbutton. '''
     sensor_frame = ttk.Frame(Globals.scrollable_frame)
     sensor_frame.pack(side='top', fill='x')
-    Globals.sensor_list.append(sensor_frame)
+    Globals.sensor_list.append(sensor_frame)        # Add frame to list of sensor frames. Use this to keep track of different sensor frames.
     
+    ''' Create and place sensor combobox. '''
     sensor = tk.StringVar()
     sensor_cb = ttk.Combobox(sensor_frame, width=10, textvariable=sensor)
     sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
     sensor_cb['state'] = 'disable'
     sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
     
-    
+    ''' Create and place radii entry. '''
     radii = ttk.Entry(sensor_frame, width=5)
     radii['state'] = 'disable'
     radii.pack(side='left', fill='both', padx=30, pady=10)
     
+    ''' Get random color from list colors. Add the color to the list of colors being used. Create and place color label. '''
     color = colors[np.random.choice(range(96))]
     Globals.color_list.append(color)
     color_label = Label(sensor_frame, bg=color, width=2)
     color_label.pack(side='left', padx=7, pady=10)
     
+    ''' Create and place checkbutton. Command function is enableDisable. '''
     checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
-    # checkbox.bind('<ButtonPress-1>', lambda event: enableDisable(sensor_frame.winfo_children()))
     checkbox.pack(side='left', fill='both', padx=15, pady=10)
-    
     
     return
 
@@ -284,7 +283,6 @@ def launch():
     # Within this frame in the canvas, we will add the new sensor combobox, checkbox, and entry.
     canvas = Canvas(middleFrame, width=320)
     scrollbar = ttk.Scrollbar(middleFrame, orient='vertical', command=canvas.yview)
-    scrollbar.bind("<MouseWheel>")
     Globals.scrollable_frame = ttk.Frame(canvas)
     Globals.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
     
@@ -426,9 +424,6 @@ def initializeGUI():
     
 def GUI():
     initializeGUI()
-
     fileTree()
     mainPage()
-    
-    
     Globals.root.mainloop()

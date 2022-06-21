@@ -4,7 +4,7 @@ Created on Mon Jun  6 08:43:18 2022
 
 @author: jonpe
 """
-
+import math
 import numpy as np
 import tkinter as tk
 from tkinter import *
@@ -13,6 +13,7 @@ from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showerror, showwarning, showinfo
 from tkinter import filedialog as fd
 from PIL import Image, ImageTk
+from tkhtmlview import HTMLLabel
 import os
 
 
@@ -46,7 +47,9 @@ class Globals:
     
     scrollable_frame = None
     sensor_list = []
+    radii_list =[]
     color_list = []
+    color_canvas = None
     
     
     
@@ -101,7 +104,8 @@ def add_new_sensor():
     sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
     
     ''' Create and place radii entry. '''
-    radii = ttk.Entry(sensor_frame, width=5)
+    radius = tk.IntVar()
+    radii = ttk.Entry(sensor_frame, width=5, textvariable=radius)
     radii['state'] = 'disable'
     radii.pack(side='left', fill='both', padx=30, pady=10)
     
@@ -129,13 +133,64 @@ def remove_sensor():
         Globals.color_list = Globals.color_list[:-1]
         return 
     
+''' Function to create image of the sensor set up from the software's perspective. '''
+def create_set_up():
+    centerX = 138
+    centerY = 130
+    Globals.radii_list = []
+    for sensor in Globals.sensor_list:
+        radii_entry = sensor.winfo_children()[1]
+        if ('normal' in str(radii_entry['state'])):
+            Globals.radii_list.append(radii_entry.get())
+            
+    print(Globals.radii_list)
+    
+    firstSensor = Globals.radii_list[0]
+    x1 = centerX - 5
+    x2 = centerX + 5
+    y1 = centerY + (int(Globals.radii_list[0]))
+    y2 = centerY + (int(Globals.radii_list[0])) - 10
+    Globals.color_canvas.create_rectangle(x1, y1, x2, y2, fill=Globals.color_list[0])
+    
+    radii_list = Globals.radii_list[1:]
+    a = int(Globals.radii_list[0])
+    angle = 360 / (len(Globals.radii_list))
+    pi = math.pi
+    for i in range(len(radii_list)):
+        count = 1
+        print(i)
+        b = int(radii_list[i])
+        c = math.sqrt(a**2 + b**2 +2*a*b*math.cos(angle)) 
+        d = (c**2 + a**2 - b**2)/(2*a*c)
+        print(d)
+        angle1 = math.acos((c**2 + a**2 - b**2)/(2*a*c)) * 180 / pi 
+        angle2 = 90 - angle1
+        shiftx = int(c * math.cos(angle2))
+        shifty = int(c * math.sin(angle2))
+        
+        if count == 1:
+            x1 = x1 - shiftx
+            x2 = x2 - shiftx
+            y1 = y1 + shifty
+            y2 = y2 + shifty
+        elif count == 2:    
+            x1 = x1 + shiftx
+            x2 = x2 + shiftx
+            y1 = y1 + shifty
+            y2 = y2 + shifty
+        
+        Globals.color_canvas.create_rectangle(x1, y1, x2, y2, fill=Globals.color_list[i+1])
+        count = count + 1
+    
+    
 ''' Function will create file tree of directories.'''
 def fileTree():
     listOfDirs = os.listdir(Globals.cwd)
     dirName = os.path.split(Globals.cwd)    
 
     # Now create the tree.
-    Globals.tree = ttk.Treeview(Globals.treeContainer, height=10)
+    height1 = Globals.treeContainer.winfo_screenheight() - 20
+    Globals.tree = ttk.Treeview(Globals.treeContainer, height=height1)
     # print(Globals.tree.configure().keys())
     Globals.tree.heading('#0', text=dirName[0], anchor='w')
     
@@ -151,7 +206,7 @@ def fileTree():
         
         iidCount = iidCount + 1
         
-    Globals.tree.pack(side='top', fill='both', expand=True)
+    Globals.tree.pack(side='top', fill='y', expand=True)
         
     
 ''' Function will allow user to change where the files get saved. 
@@ -174,20 +229,22 @@ def mainPage():
     # leftFrame.pack(side='left', fill='both', expand=True)
     rightFrame.pack(side='left', fill='both', expand=True)
     
-    ''' Place image for now in left frame.
-    img_path = "mag_screen_apperatus.png"
-    photo_image = ImageTk.PhotoImage(Image.open(img_path))
-    label = ttk.Label(leftFrame, image=photo_image)
-    label.pack(fill='both', expand=True)'''
-    
-    ''' Create text box and scrollbar for right frame.'''
-    st = ScrolledText(rightFrame, wrap=tk.WORD, width=70, height=10, font=('Book Antiqua', 12))
-    st.insert('1.0', "Magnetic cleanliness screening is the process of determining the magnetic properties of various parts before they are added to instrumentation that measures magnetic fields. The properties of interest are the stray field and dipole moment. Typically a full field characterization is unnecessary. A simple pass/fail measurement of the worst possible magnetic field distortion created by an object is typically good enough for instrument construction purposes. This software is intended for use with an apparatus that rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR sensors for thier simple serial interface, though it easily could be adapted for other equipment.")
-    st['state'] = 'disabled'
-    
-    ''' Place the scrolled text widget in right frame.'''
-    st.pack(fill='both', expand=True)
-    
+    ''' Place image for now in left frame.'''
+    main_label = HTMLLabel(rightFrame, html="""
+        <p>Magnetic cleanliness screening is the process of determining the
+        magnetic properties of various parts before they are added to 
+        instrumentation that measures magnetic fields. The properties of interest
+        are the stray field and dipole moment. Typically a full field 
+        characterization is unnecessary. A simple pass/fail measurement of the 
+        worst possible magnetic field distortion created by an object is typically good enough for
+        instrument construction purposes. This software is intended for use with an apparatus that 
+        rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly 
+        sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR 
+        sensors for thier simple serial interface, though it easily could be adapted for other equipment.</p>
+                   <img src="mag_screen_apperatus.jpg">                
+    """)
+                           
+    main_label.pack(pady=20, padx=20, fill='both', expand=True)
     
     
 ''' Function creates second window with all the options for a run. '''    
@@ -243,12 +300,12 @@ def launch():
     ''' Placing the widgets in the top frame. '''
     tech_label.pack(fill='x', side='left')
     tech.pack(fill='x', side='left', padx=10)
+    
+    system_label.pack(fill='x', side='left', padx=10)
+    system.pack(fill='x', side='left', padx=5)
    
     part_label.pack(fill='x', side='left', padx=10)
     part.pack(fill='x', side='left', padx=5)
-   
-    system_label.pack(fill='x', side='left', padx=10)
-    system.pack(fill='x', side='left', padx=5)
    
     ''' Create widgets for second frame. This is the combobox for number of sensors 
        being used. '''
@@ -309,6 +366,15 @@ def launch():
     while (i < Globals.default_num_sensors):
         add_new_sensor()
         i= i + 1
+        
+    ''' Create image of set up based on softwares perspective. Users can use this to confirm this looks like
+    their set up or make changes to the program options to ensure it is correct. Start by creating a canvas. '''
+    Globals.color_canvas = Canvas(middleFrame, width=275, bg='white')
+    Globals.color_canvas.pack(side='left', fill='both', padx=5)
+    Globals.color_canvas.create_oval(123, 115, 153, 145)
+    
+    ''' Have a function called to create the figures representing set up. '''
+    # create_set_up()
    
     ''' Create widgets for bottom frame. This will be rate label and entry, 
        options button, and reset all button. '''
@@ -316,13 +382,15 @@ def launch():
     rate = ttk.Entry(bottomFrame, width='10')
     rate.insert(0, Globals.default_rate)
     
-    options = ttk.Button(bottomFrame, text='Options', width=40)        # Need to create funtion and add command for Option button   
+    options = ttk.Button(bottomFrame, text='Options', width=15)        # Need to create funtion and add command for Option button  
+    ready = ttk.Button(bottomFrame, text='Ready', width=15, command=create_set_up)
    
     ''' Place widgets into bottom frame. '''
     rate_label.pack(side='left', padx=25, pady=5)
     rate.pack(side='left', padx=25, pady=5)
    
-    options.pack(side='left', fill='both', expand=True, padx=153, pady=5)
+    options.pack(side='left', fill='both', expand=True, padx=25, pady=5)
+    ready.pack(side='left', fill='both', expand=True, padx=25, pady=5)
    
     ''' Create widgets for bottomFrame2. This will be progress bar, clear all button, and run button'''
     clear_all = ttk.Button(bottomFrame2, text='Clear all', width=15)    # Need to create funtion and add command for Clear all button
@@ -353,6 +421,8 @@ def initializeGUI():
     
     ''' Place main window. '''
     mainWindow.pack(fill='both', expand=True)
+    mainWindow.columnconfigure(1, weight=1)
+    mainWindow.rowconfigure(1, weight=1)
     
     ''' Create menu bar for main window. '''
     menubar = Menu(Globals.root)
@@ -395,10 +465,10 @@ def initializeGUI():
     bottomContainer = Frame(mainWindow, width=500, height=75, pady=10, padx=20)
     
     ''' Place subcontainers in main window. '''
-    Globals.treeContainer.grid(row=0, column=0, rowspan=3)
-    topContainer.grid(row=0, column=1, columnspan=3)
-    Globals.midContainer.grid(row=1, column=1, columnspan=3)
-    bottomContainer.grid(row=2, column=1, columnspan=3)
+    Globals.treeContainer.grid(row=0, column=0, rowspan=2, sticky=N+S)
+    topContainer.grid(row=0, column=1, sticky=E+W+N+S)
+    Globals.midContainer.grid(row=1, column=1, sticky=E+W+N+S)
+    bottomContainer.grid(row=2, column=1, sticky=E+W+N+S)
     
     
     ''' Create the widgets for top container. New run button right now. '''
@@ -407,9 +477,9 @@ def initializeGUI():
     blankLabel = ttk.Label(topContainer, text=' ')
     
     ''' Place the widgets in top container. New run button. '''
-    newRunButton.pack(side='right', expand=True, fill='both', padx=40, pady=10)
-    welcomeLabel.pack(side='left', expand=True, fill='both', padx=10, pady=10)
-    blankLabel.pack(side='left', expand=True, fill='both', padx=80, pady=10)
+    newRunButton.pack(side='right', padx=40, pady=10)
+    welcomeLabel.pack(side='left', padx=10, pady=10)
+    blankLabel.pack(side='left', padx=80, pady=10)
     
     
     ''' Create options entry and button for user to change where the files are saved. Will 

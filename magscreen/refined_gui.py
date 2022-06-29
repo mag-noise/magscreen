@@ -73,11 +73,10 @@ def enableDisable(children):
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''
 def add_new_sensor():
-    colors = ['snow', 'white smoke', 'gainsboro', 'floral white', 'old lace',
-          'linen', 'antique white', 'papaya whip', 'blanched almond', 'bisque', 'peach puff',
+    colors = ['papaya whip', 'blanched almond', 'bisque', 'peach puff',
           'navajo white', 'lemon chiffon', 'mint cream', 'azure', 'alice blue', 'lavender',
-          'lavender blush', 'misty rose', 'dark slate gray', 'dim gray', 'slate gray',
-          'light slate gray', 'gray', 'light grey', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
+          'lavender blush', 'dark slate gray', 'dim gray', 'slate gray',
+          'gray', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
           'slate blue', 'medium slate blue', 'light slate blue', 'medium blue', 'royal blue',  'blue',
           'dodger blue', 'deep sky blue', 'sky blue', 'light sky blue', 'steel blue', 'light steel blue',
           'light blue', 'powder blue', 'pale turquoise', 'dark turquoise', 'medium turquoise', 'turquoise',
@@ -110,7 +109,7 @@ def add_new_sensor():
     radii.pack(side='left', fill='both', padx=30, pady=10)
     
     ''' Get random color from list colors. Add the color to the list of colors being used. Create and place color label. '''
-    color = colors[np.random.choice(range(96))]
+    color = colors[np.random.choice(range(len(colors)))]
     Globals.color_list.append(color)
     color_label = Label(sensor_frame, bg=color, width=2)
     color_label.pack(side='left', padx=7, pady=10)
@@ -145,43 +144,29 @@ def create_set_up():
             
     print(Globals.radii_list)
     
-    firstSensor = Globals.radii_list[0]
-    x1 = centerX - 5
-    x2 = centerX + 5
-    y1 = centerY + (int(Globals.radii_list[0]))
-    y2 = centerY + (int(Globals.radii_list[0])) - 10
-    Globals.color_canvas.create_rectangle(x1, y1, x2, y2, fill=Globals.color_list[0])
-    
-    radii_list = Globals.radii_list[1:]
-    a = int(Globals.radii_list[0])
-    angle = 360 / (len(Globals.radii_list))
     pi = math.pi
-    for i in range(len(radii_list)):
-        count = 1
-        print(i)
-        b = int(radii_list[i])
-        c = math.sqrt(a**2 + b**2 +2*a*b*math.cos(angle)) 
-        d = (c**2 + a**2 - b**2)/(2*a*c)
-        print(d)
-        angle1 = math.acos((c**2 + a**2 - b**2)/(2*a*c)) * 180 / pi 
-        angle2 = 90 - angle1
-        shiftx = int(c * math.cos(angle2))
-        shifty = int(c * math.sin(angle2))
+    theta = 0
+    incr = (2*pi) / len(Globals.radii_list)
+    for i in range(len(Globals.radii_list)):
+        shifty = 5*int(Globals.radii_list[i])*math.sin(theta)
+        shiftx = 5*int(Globals.radii_list[i])*math.cos(theta)
         
-        if count == 1:
-            x1 = x1 - shiftx
-            x2 = x2 - shiftx
-            y1 = y1 + shifty
-            y2 = y2 + shifty
-        elif count == 2:    
-            x1 = x1 + shiftx
-            x2 = x2 + shiftx
-            y1 = y1 + shifty
-            y2 = y2 + shifty
         
-        Globals.color_canvas.create_rectangle(x1, y1, x2, y2, fill=Globals.color_list[i+1])
-        count = count + 1
+        test = pi/2
+        
+        x1_new = math.cos(test) * (-12) + math.sin(test) * (5) + centerX + shiftx
+        y1_new = -(math.sin(test) * (-12)) + math.cos(test) * (5) + centerY + shifty
+        x2_new = math.cos(test) * (12) - math.sin(test) * (-5) + centerX + shiftx 
+        y2_new = -(math.sin(test)) * (12) + math.cos(test) * (-5) + centerY + shifty
+        
+        
+        Globals.color_canvas.create_polygon(x1_new, y1_new, x2_new, y1_new, x2_new, y2_new, x1_new, y2_new, fill=Globals.color_list[i])
+        
+        # rotate the rectangle
+        theta = theta + incr
+        
     
+        
     
 ''' Function will create file tree of directories.'''
 def fileTree():
@@ -371,7 +356,8 @@ def launch():
     their set up or make changes to the program options to ensure it is correct. Start by creating a canvas. '''
     Globals.color_canvas = Canvas(middleFrame, width=275, bg='white')
     Globals.color_canvas.pack(side='left', fill='both', padx=5)
-    Globals.color_canvas.create_oval(123, 115, 153, 145)
+    Globals.color_canvas.create_oval(79, 71, 197, 189, fill='light gray')
+    Globals.color_canvas.create_oval(139, 131, 137, 129, fill='black')
     
     ''' Have a function called to create the figures representing set up. '''
     # create_set_up()

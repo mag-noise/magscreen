@@ -5,13 +5,12 @@ import math
 """Testing rotations"""
 
 def rotate2D(lPts, degree):
+	"""In plane rotation of a 2-D polygon
 
-	import math as M
-
-	"""Given a list of (x,y) points:
-	1. Calculate the centroid
-	2. Rotate the points about the centroid
-	3. Return a list of rotated points.
+	Given a list of (x,y) points:
+	  1. Calculate the centroid
+	  2. Rotate the points about the centroid
+	  3. Return a list of rotated points.
 
 	For screen coordinates, Y is typically oriented down the page thus positive
 	angles are assumed to run clockwise for example:
@@ -45,20 +44,17 @@ def rotate2D(lPts, degree):
 	if len(lPts) < 2: return lPts  # "Rotating" a single point
 
 	# Get centroid
-	centroid = [0,0]
-	for i in range(0,len(lPts)):
-		centroid[0] += lPts[i][0]
-		centroid[1] += lPts[i][1]
-
-	centroid[0] = round( centroid[0] / len(lPts))
-	centroid[1] = round( centroid[1] / len(lPts))
+	centroid = [ 
+		round( sum([pt[0] for pt in lPts]) / len(lPts) ), 
+		round( sum([pt[1] for pt in lPts]) / len(lPts) )
+	]
 
 	# Subtract off centroid to center about zero
 	lOut = [ [pt[0] - centroid[0], pt[1] - centroid[1]] for pt in lPts]
 
 	# Calcutate rotation matrix.  Trig functions are expensive do them once
-	rad = (degree * M.pi) / 180
-	R = ( ( M.cos(rad), - M.sin(rad) ), (M.sin(rad), M.cos(rad) ) )
+	rad = (degree * math.pi) / 180
+	R = ( ( math.cos(rad), - math.sin(rad) ), (math.sin(rad), math.cos(rad) ) )
 
 	# Rotate
 	lOut = [ 

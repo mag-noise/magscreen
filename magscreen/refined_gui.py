@@ -15,6 +15,7 @@ from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 from tkhtmlview import HTMLLabel
 import os
+from rotation_test import screenRotate
 
 
 ''' This class will represent the default values helping manage our global
@@ -148,19 +149,101 @@ def create_set_up():
     theta = 0
     incr = (2*pi) / len(Globals.radii_list)
     for i in range(len(Globals.radii_list)):
-        shifty = 5*int(Globals.radii_list[i])*math.sin(theta)
-        shiftx = 5*int(Globals.radii_list[i])*math.cos(theta)
+        shifty = 5.3*int(Globals.radii_list[i])*math.sin(theta)
+        shiftx = 5.3*int(Globals.radii_list[i])*math.cos(theta)
         
+        if (theta == 0 or theta == pi or theta == 2*pi):
+            x1 = (-12) + centerX + shiftx
+            y1 = (5) + centerY + shifty
+            x2 = (12) + centerX + shiftx 
+            y2 = (-5) + centerY + shifty
         
-        test = pi/2
-        
-        x1_new = math.cos(test) * (-12) + math.sin(test) * (5) + centerX + shiftx
-        y1_new = -(math.sin(test) * (-12)) + math.cos(test) * (5) + centerY + shifty
-        x2_new = math.cos(test) * (12) - math.sin(test) * (-5) + centerX + shiftx 
-        y2_new = -(math.sin(test)) * (12) + math.cos(test) * (-5) + centerY + shifty
-        
-        
-        Globals.color_canvas.create_polygon(x1_new, y1_new, x2_new, y1_new, x2_new, y2_new, x1_new, y2_new, fill=Globals.color_list[i])
+            lPts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+            
+        elif (theta > (3*pi/2)):
+            angle = theta - (3*pi/2)
+            phi = (pi/2) - angle
+            
+            x1 = centerX + shiftx
+            y1 = centerY + shifty
+            
+            delta_x1 = 10*math.sin(phi)
+            delta_y1 = 10*math.cos(phi)
+            delta_x2 = 24*math.sin(angle)
+            delta_y2 = 24*math.cos(angle)
+            
+            p1 = (x1, y1)
+            p2 = ((x1 - delta_x1), (y1 - delta_y1))
+            p3 = ((p2[0] + delta_x2), (p2[1] - delta_y2))
+            p4 = ((x1 + delta_x2), (y1 - delta_y2))
+            
+            lPts = [p1, p2, p3, p4]
+            
+        elif (theta > pi):
+            angle = theta - (pi)
+            phi = (pi/2) - angle
+            
+            x1 = centerX + shiftx
+            y1 = centerY + shifty
+            
+            delta_x1 = 10*math.sin(angle)
+            delta_y1 = 10*math.cos(angle)
+            delta_x2 = 24*math.sin(phi)
+            delta_y2 = 24*math.cos(phi)
+            
+            p1 = (x1, y1)
+            p2 = ((x1 + delta_x1), (y1 - delta_y1))
+            p3 = ((p2[0] - delta_x2), (p2[1] - delta_y2))
+            p4 = ((x1 - delta_x2), (y1 - delta_y2))
+            
+            lPts = [p1, p2, p3, p4]
+            
+        elif (theta > (pi/2)):
+            angle = theta - (pi/2)
+            phi = (pi/2) - angle
+            
+            x1 = centerX + shiftx
+            y1 = centerY + shifty
+            
+            delta_x1 = 10*math.sin(phi)
+            delta_y1 = 10*math.cos(phi)
+            delta_x2 = 24*math.sin(angle)
+            delta_y2 = 24*math.cos(angle)
+            
+            p1 = (x1, y1)
+            p2 = ((x1 + delta_x1), (y1 + delta_y1))
+            p3 = ((p2[0] - delta_x2), (p2[1] + delta_y2))
+            p4 = ((x1 - delta_x2), (y1 + delta_y2))
+            
+            lPts = [p1, p2, p3, p4]
+            
+        elif (theta < (pi/2)):
+            phi = (pi/2) - theta
+            
+            x1 = centerX + shiftx
+            y1 = centerY + shifty
+            
+            delta_x1 = 10*math.sin(theta)
+            delta_y1 = 10*math.cos(theta)
+            delta_x2 = 24*math.sin(phi)
+            delta_y2 = 24*math.cos(phi)
+            
+            p1 = (x1, y1)
+            p2 = ((x1 - delta_x1), (y1 + delta_y1))
+            p3 = ((p2[0] + delta_x2), (p2[1] + delta_y2))
+            p4 = ((x1 + delta_x2), (y1 + delta_y2))
+            
+            lPts = [p1, p2, p3, p4]
+            
+        elif (theta == (3*pi/2) or theta == pi/2):
+            y1 = (-12) + centerX + shiftx
+            x1 = (5) + centerY + shifty
+            y2 = (12) + centerX + shiftx 
+            x2 = (-5) + centerY + shifty
+            
+            lPts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+          
+        Globals.color_canvas.create_polygon(lPts, fill=Globals.color_list[i])
         
         # rotate the rectangle
         theta = theta + incr

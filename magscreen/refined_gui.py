@@ -54,6 +54,23 @@ class Globals:
     
     so = []
     
+    colors = ['papaya whip', 'blanched almond', 'bisque', 'peach puff',
+          'navajo white', 'lemon chiffon', 'mint cream', 'azure', 'alice blue', 'lavender',
+          'lavender blush', 'dark slate gray', 'dim gray', 'slate gray',
+          'gray', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
+          'slate blue', 'medium slate blue', 'light slate blue', 'medium blue', 'royal blue',  'blue',
+          'dodger blue', 'deep sky blue', 'sky blue', 'light sky blue', 'steel blue', 'light steel blue',
+          'light blue', 'powder blue', 'pale turquoise', 'dark turquoise', 'medium turquoise', 'turquoise',
+          'cyan', 'light cyan', 'cadet blue', 'aquamarine', 'dark green', 'dark olive green',
+          'dark sea green', 'sea green', 'medium sea green', 'light sea green', 'pale green', 'spring green',
+          'lawn green', 'medium spring green', 'green yellow', 'lime green', 'yellow green',
+          'forest green', 'olive drab', 'dark khaki', 'pale goldenrod',
+          'light yellow', 'yellow', 'gold', 'light goldenrod', 'goldenrod', 'dark goldenrod', 'rosy brown',
+          'indian red', 'saddle brown', 'sandy brown',
+          'dark salmon', 'salmon', 'light salmon', 'orange', 'dark orange',
+          'coral', 'light coral', 'tomato', 'orange red', 'red', 'hot pink', 'deep pink', 'pink', 'light pink',
+          'pale violet red', 'maroon', 'medium violet red', 'violet red']
+    
     
 class sensor:
     def __init__(self, serial, radii, color, state=0):
@@ -61,8 +78,36 @@ class sensor:
         self.radii = radii
         self.color = color
         self.state = state
+
+class sensorFrame(ttk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+        
+        self.pack(side='top', fill='x')
+        
+        ''' Create and place sensor combobox. '''
+        self.serial = tk.StringVar()
+        self.sensor_cb = ttk.Combobox(self, width=10, textvariable=serial)
+        self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
+        self.sensor_cb['state'] = 'disable'
+        self.sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
+        
+        ''' Create and place radii entry. '''
+        self.radius = tk.IntVar()
+        self.radii = ttk.Entry(self, width=5, textvariable=radius)
+        self.radii['state'] = 'disable'
+        self.radii.pack(side='left', fill='both', padx=30, pady=10)
+        
+        ''' Get random color from list colors. Add the color to the list of colors being used. Create and place color label. '''
+        self.color = Globals.colors[np.random.choice(range(len(Globals.colors)))]
+        self.Globals.color_list.append(self.color)
+        self.color_label = Label(self, bg=color, width=2)
+        self.color_label.pack(side='left', padx=7, pady=10)
     
-    
+        ''' Create and place checkbutton. Command function is enableDisable. '''
+        self.checkbox = ttk.Checkbutton(self, command=lambda: enableDisable(self.winfo_children()))
+        self.checkbox.pack(side='left', fill='both', padx=15, pady=10)
+        
     
     
 ''' Function changes current working directory. Calls function to remake tree.'''    
@@ -130,12 +175,11 @@ def add_new_sensor():
     ''' Create and place checkbutton. Command function is enableDisable. '''
     checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
     checkbox.pack(side='left', fill='both', padx=15, pady=10)
+    
+    s = sensorFrame(Globals.scrollable_frame)
+    Globals.os.append(s)
+    
 
-    s = sensor
-    s.color = color
-    
-    Globals.so.append(s)
-    
     return
 
 ''' Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. '''

@@ -52,6 +52,17 @@ class Globals:
     color_list = []
     color_canvas = None
     
+    so = []
+    
+    
+class sensor:
+    def __init__(self, serial, radii, color, state=0):
+        self.serial = serial
+        self.radii = radii
+        self.color = color
+        self.state = state
+    
+    
     
     
 ''' Function changes current working directory. Calls function to remake tree.'''    
@@ -67,6 +78,7 @@ def enableDisable(children):
     if ('normal' in str(combobox['state'])):
         combobox.configure(state='disable')
         entry.configure(state='disable')
+        
     else:
         combobox.configure(state='normal')
         entry.configure(state='normal')
@@ -118,6 +130,11 @@ def add_new_sensor():
     ''' Create and place checkbutton. Command function is enableDisable. '''
     checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
     checkbox.pack(side='left', fill='both', padx=15, pady=10)
+
+    s = sensor
+    s.color = color
+    
+    Globals.so.append(s)
     
     return
 
@@ -247,6 +264,8 @@ def create_set_up():
         
         # rotate the rectangle
         theta = theta + incr
+		
+	
         
     
         
@@ -317,6 +336,9 @@ def mainPage():
     
 ''' Function creates second window with all the options for a run. '''    
 def launch():
+    if (Globals.secondWindow != None):
+        Globals.secondWindow.deiconify()
+        return
     Globals.secondWindow = Toplevel()
     Globals.secondWindow.title("MagScreen Testing")
     Globals.secondWindow.geometry('650x510')
@@ -477,8 +499,13 @@ def launch():
     clear_all.pack(side='left', fill='x', padx=25, pady=5)
    
     run.pack(side='left', fill='x', padx=25, pady=5)
-   
+	    
+    Globals.secondWindow.protocol("WM_DELETE_WINDOW", hide)
     return
+
+def hide():
+	Globals.secondWindow.withdraw()
+	return
     
 def initializeGUI():
     Globals.root = Tk()

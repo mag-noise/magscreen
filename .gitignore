@@ -1,6 +1,7 @@
 build
-vanscreen/__pycache__
+manscreen/__pycache__
 *.egg-info
 *.csv
 *.pdf
 dist
+.spyproject

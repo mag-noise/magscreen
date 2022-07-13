@@ -15,7 +15,6 @@ from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 from tkhtmlview import HTMLLabel
 import os
-from rotation_test import screenRotate
 
 
 ''' This class will represent the default values helping manage our global
@@ -48,7 +47,6 @@ class Globals:
     
     scrollable_frame = None
     sensor_list = []
-    radii_list =[]
     color_list = []
     color_canvas = None
     
@@ -83,30 +81,31 @@ class sensorFrame(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
         
-        self.pack(side='top', fill='x')
-        
         ''' Create and place sensor combobox. '''
         self.serial = tk.StringVar()
-        self.sensor_cb = ttk.Combobox(self, width=10, textvariable=serial)
+        self.sensor_cb = ttk.Combobox(self, width=10, textvariable=self.serial)
         self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
         self.sensor_cb['state'] = 'disable'
         self.sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
         
         ''' Create and place radii entry. '''
         self.radius = tk.IntVar()
-        self.radii = ttk.Entry(self, width=5, textvariable=radius)
+        self.radii = ttk.Entry(self, width=5, textvariable=self.radius)
         self.radii['state'] = 'disable'
         self.radii.pack(side='left', fill='both', padx=30, pady=10)
         
         ''' Get random color from list colors. Add the color to the list of colors being used. Create and place color label. '''
         self.color = Globals.colors[np.random.choice(range(len(Globals.colors)))]
-        self.Globals.color_list.append(self.color)
-        self.color_label = Label(self, bg=color, width=2)
+        Globals.color_list.append(self.color)
+        self.color_label = Label(self, bg=self.color, width=2)
         self.color_label.pack(side='left', padx=7, pady=10)
     
         ''' Create and place checkbutton. Command function is enableDisable. '''
         self.checkbox = ttk.Checkbutton(self, command=lambda: enableDisable(self.winfo_children()))
         self.checkbox.pack(side='left', fill='both', padx=15, pady=10)
+        
+        # show frame
+        self.pack(side='top', fill='x')
         
     
     
@@ -131,87 +130,50 @@ def enableDisable(children):
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''
 def add_new_sensor():
-    colors = ['papaya whip', 'blanched almond', 'bisque', 'peach puff',
-          'navajo white', 'lemon chiffon', 'mint cream', 'azure', 'alice blue', 'lavender',
-          'lavender blush', 'dark slate gray', 'dim gray', 'slate gray',
-          'gray', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
-          'slate blue', 'medium slate blue', 'light slate blue', 'medium blue', 'royal blue',  'blue',
-          'dodger blue', 'deep sky blue', 'sky blue', 'light sky blue', 'steel blue', 'light steel blue',
-          'light blue', 'powder blue', 'pale turquoise', 'dark turquoise', 'medium turquoise', 'turquoise',
-          'cyan', 'light cyan', 'cadet blue', 'aquamarine', 'dark green', 'dark olive green',
-          'dark sea green', 'sea green', 'medium sea green', 'light sea green', 'pale green', 'spring green',
-          'lawn green', 'medium spring green', 'green yellow', 'lime green', 'yellow green',
-          'forest green', 'olive drab', 'dark khaki', 'pale goldenrod',
-          'light yellow', 'yellow', 'gold', 'light goldenrod', 'goldenrod', 'dark goldenrod', 'rosy brown',
-          'indian red', 'saddle brown', 'sandy brown',
-          'dark salmon', 'salmon', 'light salmon', 'orange', 'dark orange',
-          'coral', 'light coral', 'tomato', 'orange red', 'red', 'hot pink', 'deep pink', 'pink', 'light pink',
-          'pale violet red', 'maroon', 'medium violet red', 'violet red']
-    
-    '''Create and place frame for sensor combobox, radii entry, color label, and checkbutton. '''
-    sensor_frame = ttk.Frame(Globals.scrollable_frame)
-    sensor_frame.pack(side='top', fill='x')
-    Globals.sensor_list.append(sensor_frame)        # Add frame to list of sensor frames. Use this to keep track of different sensor frames.
-    
-    ''' Create and place sensor combobox. '''
-    sensor = tk.StringVar()
-    sensor_cb = ttk.Combobox(sensor_frame, width=10, textvariable=sensor)
-    sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
-    sensor_cb['state'] = 'disable'
-    sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
-    
-    ''' Create and place radii entry. '''
-    radius = tk.IntVar()
-    radii = ttk.Entry(sensor_frame, width=5, textvariable=radius)
-    radii['state'] = 'disable'
-    radii.pack(side='left', fill='both', padx=30, pady=10)
-    
-    ''' Get random color from list colors. Add the color to the list of colors being used. Create and place color label. '''
-    color = colors[np.random.choice(range(len(colors)))]
-    Globals.color_list.append(color)
-    color_label = Label(sensor_frame, bg=color, width=2)
-    color_label.pack(side='left', padx=7, pady=10)
-    
-    ''' Create and place checkbutton. Command function is enableDisable. '''
-    checkbox = ttk.Checkbutton(sensor_frame, command=lambda: enableDisable(sensor_frame.winfo_children()))
-    checkbox.pack(side='left', fill='both', padx=15, pady=10)
     
     s = sensorFrame(Globals.scrollable_frame)
-    Globals.os.append(s)
+    Globals.so.append(s)
     
 
     return
 
 ''' Funcation removes sensor serial entry, checkbox, and entry for radii. Updates Globals sensor list. '''
 def remove_sensor():
-    if len(Globals.sensor_list) < 3:
+    if len(Globals.so) < 3:
         # showinfo(title='Error', message='This is the minimum number of sensors allowed.')
         return
     else:
-        last_sensor = Globals.sensor_list[-1]
+        last_sensor = Globals.so[-1]
         last_sensor.destroy()
-        Globals.sensor_list = Globals.sensor_list[:-1]
+        Globals.so = Globals.so[:-1]
         Globals.color_list = Globals.color_list[:-1]
         return 
     
 ''' Function to create image of the sensor set up from the software's perspective. '''
 def create_set_up():
+    Globals.color_canvas.delete("all")
+    Globals.color_canvas.create_oval(79, 71, 197, 189, fill='light gray')
+    Globals.color_canvas.create_oval(139, 131, 137, 129, fill='black')
+    
     centerX = 138
     centerY = 130
-    Globals.radii_list = []
-    for sensor in Globals.sensor_list:
-        radii_entry = sensor.winfo_children()[1]
+    radii_list = []
+    clr = []
+    for sensor in Globals.so:
+        radii_entry = sensor.radii
         if ('normal' in str(radii_entry['state'])):
-            Globals.radii_list.append(radii_entry.get())
+            radii_list.append(radii_entry.get())
+            clr.append(sensor.color)
             
-    print(Globals.radii_list)
+            
+    print(radii_list)
     
     pi = math.pi
     theta = 0
-    incr = (2*pi) / len(Globals.radii_list)
-    for i in range(len(Globals.radii_list)):
-        shifty = 5.3*int(Globals.radii_list[i])*math.sin(theta)
-        shiftx = 5.3*int(Globals.radii_list[i])*math.cos(theta)
+    incr = (2*pi) / len(radii_list)
+    for i in range(len(radii_list)):
+        shifty = 5.3*int(radii_list[i])*math.sin(theta)
+        shiftx = 5.3*int(radii_list[i])*math.cos(theta)
         
         if (theta == 0 or theta == pi or theta == 2*pi):
             x1 = (-12) + centerX + shiftx
@@ -304,7 +266,7 @@ def create_set_up():
             
             lPts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
           
-        Globals.color_canvas.create_polygon(lPts, fill=Globals.color_list[i])
+        Globals.color_canvas.create_polygon(lPts, fill=clr[i])
         
         # rotate the rectangle
         theta = theta + incr

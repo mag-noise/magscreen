@@ -15,6 +15,9 @@ from tkinter import filedialog as fd
 from PIL import Image, ImageTk
 from tkhtmlview import HTMLLabel
 import os
+from os.path import join as pjoin
+import json
+import sys
 
 
 ''' This class will represent the default values helping manage our global
@@ -31,11 +34,14 @@ class Globals:
 	sensor_B = 'DT04H6NY'
 	sensor_C = 'DT04H6OF'
 	no_sensor = 'N/A'
-	num_radii = 3	   # Don't need anymore
 	default_tech = 'Your name'
 	default_part = 'Enter part name'
 	default_system = 'Enter system name'
 	default_rate = 10
+	rate = None
+	tech = None
+	system = None
+	part = None
 	
 	
 	secondWindow = None
@@ -107,6 +113,115 @@ class sensorFrame(ttk.Frame):
 		# show frame
 		self.pack(side='top', fill='x')
 		
+class topFrame(ttk.Frame):
+	def __init__(self, container):
+		super().__init__(container)
+		
+		''' Create the widgets for top frame. These include technician label and entry,
+		part label and entry, and system label and entry. '''
+		self.tech_label = ttk.Label(self, text="Technician:", font=("Calibri", 12))
+		self.tech = ttk.Entry(self, textvariable=Globals.default_tech)
+		self.tech.insert(0, Globals.default_tech)
+   
+		self.part_label = ttk.Label(self, text="Part:", font=('Calibri', 12))
+		self.part = ttk.Entry(self)
+		self.part.insert(0, Globals.default_part)
+   
+		self.system_label = ttk.Label(self, text="System:", font=("Calibri", 12))
+		self.system = ttk.Entry(self)
+		self.system.insert(0, Globals.default_system)
+   
+		''' Placing the widgets in the top frame. '''
+		self.tech_label.pack(fill='x', side='left')
+		self.tech.pack(fill='x', side='left', padx=10)
+	
+		self.system_label.pack(fill='x', side='left', padx=10)
+		self.system.pack(fill='x', side='left', padx=5)
+   
+		self.part_label.pack(fill='x', side='left', padx=10)
+		self.part.pack(fill='x', side='left', padx=5)
+		
+		self.grid(row=0, sticky='nsew')
+			
+def load():
+	# open and load app data
+	if (sys.platform == 'win32'):
+		
+		filename = pjoin(os.environ['APPDATA'], 'magscreen.json')
+		
+	else:
+		
+		filename = pjoin(os.environ['HOME'], '.config', 'magscreen.json')
+		
+	# check to see if file exists
+	if not os.path.isfile(filename):
+		# dictionary for app data
+		data = {}
+	
+		# get all app data
+		data['technician'] = Globals.default_tech
+		data['system'] = Globals.default_system
+		data['part'] = Globals.default_part
+		data['numSensors'] = Globals.default_num_sensors
+		data['cwd'] = Globals.cwd
+		data['rate'] = Globals.default_rate
+	
+		if (sys.platform == 'win32'):
+			
+			filename = pjoin(os.environ['APPDATA'], 'magscreen.json')
+			
+		else:
+				
+			filename = pjoin(os.environ['HOME'], '.config', 'magscreen.json')
+	
+		# write to file 'mydata.json' the dictionary with all current info
+		with open(filename, 'w') as f:
+			json.dump(data, f)
+		
+	# open file
+	f = open(filename)
+	data = json.load(f)
+	
+	Globals.default_num_sensors = data['numSensors']
+	Globals.rate = data['rate']
+	Globals.cwd = data['cwd']
+	Globals.tech = data['technician']
+	Globals.system = data['system']
+	Globals.part = data['part']
+	
+	# close file
+	f.close()
+	
+	return
+	
+
+def save():
+	# dictionary for app data
+	data = {}
+	
+	# get all app data
+	data['technician'] = Globals.tech.get()
+	data['system'] = Globals.system.get()
+	data['part'] = Globals.part.get()
+	data['numSensors'] = len(Globals.so)
+	data['cwd'] = Globals.cwd
+	data['rate'] = Globals.rate.get()
+	
+	if (sys.platform == 'win32'):
+		
+		filename = pjoin(os.environ['APPDATA'], 'magscreen.json')
+		
+	else:
+		
+		filename = pjoin(os.environ['HOME'], '.config', 'magscreen.json')
+	
+	# write to file 'mydata.json' the dictionary with all current info
+	with open(filename, 'w') as f:
+		json.dump(data, f)
+	
+	# quit app
+	Globals.root.destroy()
+	return 
 	
 	
 ''' Function changes current working directory. Calls function to remake tree.'''	
@@ -270,11 +385,7 @@ def create_set_up():
 		
 		# rotate the rectangle
 		theta = theta + incr
-		
-	
-		
-	
-		
+	return 
 	
 ''' Function will create file tree of directories.'''
 def fileTree():
@@ -357,71 +468,43 @@ def launch():
 	bottomFrame2 = Frame(Globals.secondWindow, width=500, height=50, pady=10, padx=10)
 	
 	''' Layout all the main containers/frames '''
-	#Globals.root.grid_rowconfigure(0, weight=1)
-	#Globals.root.grid_columnconfigure(0, weight=1)
-   
 	topFrame.grid(row=0, sticky='nsew')
 	secondFrame.grid(row=1, sticky='ew')
 	middleFrame.grid(row=2, sticky='nsew')
 	bottomFrame.grid(row=3, sticky='nsew')
 	bottomFrame2.grid(row=4, sticky='ew')
    
-	''' Create subcontainers. These will be the two scroll frames. '''
-	# sfOne = ScrolledFrame(middleFrame, bg='coral', width=230, height=255, pady=10, padx=10)
-	# sfTwo = ScrolledFrame(middleFrame, bg='chartreuse', width=230, height=255, pady=10, padx=10)
-	
-	''' Bind arrow keys and scroll wheel to sub containers '''
-
-   
-	''' Place subcontainers '''
-   
-   
-	#middleFrame.grid_columnconfigure(0, weight=1)
-	#middleFrame.grid_columnconfigure(1, weight=3)
-   
 	''' Create the widgets for top frame. These include technician label and entry,
 	part label and entry, and system label and entry. '''
 	tech_label = ttk.Label(topFrame, text="Technician:", font=("Calibri", 12))
-	tech = ttk.Entry(topFrame, textvariable=Globals.default_tech)
-	tech.insert(0, Globals.default_tech)
+	Globals.tech = ttk.Entry(topFrame, textvariable=Globals.default_tech)
+	Globals.tech.insert(0, Globals.default_tech)
    
 	part_label = ttk.Label(topFrame, text="Part:", font=('Calibri', 12))
-	part = ttk.Entry(topFrame)
-	part.insert(0, Globals.default_part)
+	Globals.part = ttk.Entry(topFrame)
+	Globals.part.insert(0, Globals.default_part)
    
 	system_label = ttk.Label(topFrame, text="System:", font=("Calibri", 12))
-	system = ttk.Entry(topFrame)
-	system.insert(0, Globals.default_system)
+	Globals.system = ttk.Entry(topFrame)
+	Globals.system.insert(0, Globals.default_system)
    
 	''' Placing the widgets in the top frame. '''
 	tech_label.pack(fill='x', side='left')
-	tech.pack(fill='x', side='left', padx=10)
+	Globals.tech.pack(fill='x', side='left', padx=10)
 	
 	system_label.pack(fill='x', side='left', padx=10)
-	system.pack(fill='x', side='left', padx=5)
+	Globals.system.pack(fill='x', side='left', padx=5)
    
 	part_label.pack(fill='x', side='left', padx=10)
-	part.pack(fill='x', side='left', padx=5)
+	Globals.part.pack(fill='x', side='left', padx=5)
+	
    
 	''' Create widgets for second frame. This is the combobox for number of sensors 
 	   being used. '''
-	# num_sensors_label = ttk.Label(secondFrame, text='Number of Sensors:')
-	# Globals.selected_num_sensors = tk.IntVar()
-	# num_sensors_chosen = ttk.Combobox(secondFrame, width=5)
-	# num_sensors_chosen["values"] = (2, 3, 4, 5)
-	# num_sensors_chosen.state(["readonly"])
-	# num_sensors_chosen.set(Globals.num_sensors)	  # default number of sensors
-	# num_sensors_chosen.bind('<<Combobox Selected>>', ***Need function here to change number of sensors***)
-	
-	# s = sensorStuff(Globals.scrollable_frame)
 	
 	addSensorButton = ttk.Button(secondFrame, text='Add New Sensor', width = 20, command=add_new_sensor)
    
 	removeSensorButton = ttk.Button(secondFrame, text='Remove Sensor', width=20, command=remove_sensor)
-	
-	''' Placing the combobox in the second frame. '''
-	# num_sensors_label.pack(side='left')
-	# num_sensors_chosen.pack(fill='x', side='left', padx=10)
 	
 	addSensorButton.pack(side='left', padx=10, pady=10)
 	
@@ -476,15 +559,15 @@ def launch():
 	''' Create widgets for bottom frame. This will be rate label and entry, 
 	   options button, and reset all button. '''
 	rate_label = ttk.Label(bottomFrame, text="Rate [Hz]:")
-	rate = ttk.Entry(bottomFrame, width='10')
-	rate.insert(0, Globals.default_rate)
+	Globals.rate = ttk.Entry(bottomFrame, width='10')
+	Globals.rate.insert(0, Globals.default_rate)
 	
 	options = ttk.Button(bottomFrame, text='Options', width=15)		# Need to create funtion and add command for Option button  
 	ready = ttk.Button(bottomFrame, text='Ready', width=15, command=create_set_up)
    
 	''' Place widgets into bottom frame. '''
 	rate_label.pack(side='left', padx=25, pady=5)
-	rate.pack(side='left', padx=25, pady=5)
+	Globals.rate.pack(side='left', padx=25, pady=5)
    
 	options.pack(side='left', fill='both', expand=True, padx=25, pady=5)
 	ready.pack(side='left', fill='both', expand=True, padx=25, pady=5)
@@ -596,6 +679,8 @@ def initializeGUI():
 	
 def GUI():
 	initializeGUI()
+	load()
 	fileTree()
 	mainPage()
+	Globals.root.protocol("WM_DELETE_WINDOW", save)
 	Globals.root.mainloop()

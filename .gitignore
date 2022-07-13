@@ -5,3 +5,5 @@ manscreen/__pycache__
 *.pdf
 dist
 .spyproject
+*/.spyproject
+

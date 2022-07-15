@@ -165,6 +165,7 @@ def load():
 		data['numSensors'] = Globals.default_num_sensors
 		data['cwd'] = Globals.cwd
 		data['rate'] = Globals.default_rate
+		data['secondwindow'] = None
 	
 		if (sys.platform == 'win32'):
 			
@@ -188,6 +189,7 @@ def load():
 	Globals.tech = data['technician']
 	Globals.system = data['system']
 	Globals.part = data['part']
+	Globals.secondWindow = data['secondwindow']
 	
 	# close file
 	f.close()
@@ -203,9 +205,13 @@ def save():
 	data['technician'] = Globals.tech.get()
 	data['system'] = Globals.system.get()
 	data['part'] = Globals.part.get()
-	data['numSensors'] = len(Globals.so)
+	if len(Globals.so) > 2:
+		data['numSensors'] = len(Globals.so)
+	else:
+		data['numSensors'] = Globals.default_num_sensors
 	data['cwd'] = Globals.cwd
 	data['rate'] = Globals.rate.get()
+	data['secondwindow'] = None
 	
 	if (sys.platform == 'win32'):
 		
@@ -248,7 +254,6 @@ def add_new_sensor():
 	
 	s = sensorFrame(Globals.scrollable_frame)
 	Globals.so.append(s)
-	
 
 	return
 

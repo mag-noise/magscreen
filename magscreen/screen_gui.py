@@ -28,7 +28,7 @@ class Globals:
 	mainFrame = None
 	topFrame = None
 	window = None 
-	default_num_sensors = 8
+	default_num_sensors = 5
 	selected_num_sensors = None
 	sensor_A = 'DT04H6OX'
 	sensor_B = 'DT04H6NY'
@@ -57,23 +57,18 @@ class Globals:
 	color_canvas = None
 	
 	so = []
+	active_so = []
 	
-	colors = ['papaya whip', 'blanched almond', 'bisque', 'peach puff',
-		  'navajo white', 'lemon chiffon', 'mint cream', 'azure', 'alice blue', 'lavender',
-		  'lavender blush', 'dark slate gray', 'dim gray', 'slate gray',
+	colors = [ 'bisque', 'peach puff', 'azure', 'alice blue', 'lavender',
+	       'dim gray', 'slate gray',
 		  'gray', 'midnight blue', 'navy', 'cornflower blue', 'dark slate blue',
-		  'slate blue', 'medium slate blue', 'light slate blue', 'medium blue', 'royal blue',  'blue',
-		  'dodger blue', 'deep sky blue', 'sky blue', 'light sky blue', 'steel blue', 'light steel blue',
-		  'light blue', 'powder blue', 'pale turquoise', 'dark turquoise', 'medium turquoise', 'turquoise',
-		  'cyan', 'light cyan', 'cadet blue', 'aquamarine', 'dark green', 'dark olive green',
-		  'dark sea green', 'sea green', 'medium sea green', 'light sea green', 'pale green', 'spring green',
-		  'lawn green', 'medium spring green', 'green yellow', 'lime green', 'yellow green',
-		  'forest green', 'olive drab', 'dark khaki', 'pale goldenrod',
-		  'light yellow', 'yellow', 'gold', 'light goldenrod', 'goldenrod', 'dark goldenrod', 'rosy brown',
-		  'indian red', 'saddle brown', 'sandy brown',
-		  'dark salmon', 'salmon', 'light salmon', 'orange', 'dark orange',
-		  'coral', 'light coral', 'tomato', 'orange red', 'red', 'hot pink', 'deep pink', 'pink', 'light pink',
-		  'pale violet red', 'maroon', 'medium violet red', 'violet red']
+		  'slate blue','medium blue', 'royal blue',  'blue',
+		  'dodger blue', 'sky blue','steel blue',
+		  'light blue', 'powder blue', 'turquoise',
+		  'cyan','cadet blue', 'aquamarine', 'dark green',
+		  'dark sea green', 'sea green', 'medium sea green', 'light sea green','spring green',
+          'lime green', 'forest green', 'dark khaki', 'yellow', 'gold', 'goldenrod', 'saddle brown', 'salmon', 
+		  'orange', 'dark orange', 'coral', 'red', 'pink', 'maroon', 'violet red']
 	
 	
 class sensor:
@@ -96,7 +91,7 @@ class sensorFrame(ttk.Frame):
 		
 		''' Create and place radii entry. '''
 		self.radius = tk.IntVar()
-		self.radii = ttk.Entry(self, width=5, textvariable=self.radius)
+		self.radii = ttk.Entry(self, width=5, textvariable=self.radius,  validate="focusout", validatecommand=self.callback)
 		self.radii['state'] = 'disable'
 		self.radii.pack(side='left', fill='both', padx=30, pady=10)
 		
@@ -107,12 +102,16 @@ class sensorFrame(ttk.Frame):
 		self.color_label.pack(side='left', padx=7, pady=10)
 	
 		''' Create and place checkbutton. Command function is enableDisable. '''
-		self.checkbox = ttk.Checkbutton(self, command=lambda: enableDisable(self.winfo_children()))
+		self.checkbox = ttk.Checkbutton(self, command=lambda: enableDisable(self.winfo_children(), self))
 		self.checkbox.pack(side='left', fill='both', padx=15, pady=10)
 		
 		# show frame
 		self.pack(side='top', fill='x')
 		
+	def callback(radius):
+		Globals.active_so.append(radius)
+		create_set_up()
+		return True
 class topFrame(ttk.Frame):
 	def __init__(self, container):
 		super().__init__(container)
@@ -186,9 +185,9 @@ def load():
 	Globals.default_num_sensors = data['numSensors']
 	Globals.rate = data['rate']
 	Globals.cwd = data['cwd']
-	Globals.tech = data['technician']
-	Globals.system = data['system']
-	Globals.part = data['part']
+	Globals.default_tech = data['technician']
+	Globals.default_system = data['system']
+	Globals.default_part = data['part']
 	Globals.secondWindow = data['secondwindow']
 	
 	# close file
@@ -237,16 +236,20 @@ def select_directory():
 	return
 
 ''' Function enables and disables the sensor combobox and radii entry widget corresponding to the check button clicked.'''
-def enableDisable(children):	
+def enableDisable(children, sensor):	
 	combobox = children[0]
 	entry = children[1]
 	if ('normal' in str(combobox['state'])):
 		combobox.configure(state='disable')
 		entry.configure(state='disable')
+		i = Globals.active_so.index(sensor)
+		del Globals.active_so[i]
 		
 	else:
 		combobox.configure(state='normal')
 		entry.configure(state='normal')
+		
+	create_set_up()
 	return
 
 ''' Function adds new sensor serial number entry, check box, and entry for radii. '''
@@ -279,7 +282,8 @@ def create_set_up():
 	centerY = 130
 	radii_list = []
 	clr = []
-	for sensor in Globals.so:
+	
+	for sensor in Globals.active_so:
 		radii_entry = sensor.radii
 		if ('normal' in str(radii_entry['state'])):
 			radii_list.append(radii_entry.get())
@@ -292,8 +296,8 @@ def create_set_up():
 	theta = 0
 	incr = (2*pi) / len(radii_list)
 	for i in range(len(radii_list)):
-		shifty = 5.3*int(radii_list[i])*math.sin(theta)
-		shiftx = 5.3*int(radii_list[i])*math.cos(theta)
+		shifty = int(5.3*int(radii_list[i])*math.sin(theta))
+		shiftx = int(5.3*int(radii_list[i])*math.cos(theta))
 		
 		if (theta == 0 or theta == pi or theta == 2*pi):
 			x1 = (-12) + centerX + shiftx
@@ -321,6 +325,14 @@ def create_set_up():
 			p4 = ((x1 + delta_x2), (y1 - delta_y2))
 			
 			lPts = [p1, p2, p3, p4]
+			
+		elif (theta == (3*pi/2)):
+			y1 = (-12) + centerY + shifty
+			x1 = (5) + centerX + shiftx
+			y2 = (12) + centerY + shifty
+			x2 = (-5) + centerX + shiftx
+			
+			lPts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
 			
 		elif (theta > pi):
 			angle = theta - (pi)
@@ -378,11 +390,11 @@ def create_set_up():
 			
 			lPts = [p1, p2, p3, p4]
 			
-		elif (theta == (3*pi/2) or theta == pi/2):
-			y1 = (-12) + centerX + shiftx
-			x1 = (5) + centerY + shifty
-			y2 = (12) + centerX + shiftx 
-			x2 = (-5) + centerY + shifty
+		elif (theta == (pi/2)):
+			y1 = (-12) + centerY + shifty
+			x1 = (5) + centerX + shiftx
+			y2 = (12) + centerY + shifty
+			x2 = (-5) + centerX + shiftx
 			
 			lPts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
 		  

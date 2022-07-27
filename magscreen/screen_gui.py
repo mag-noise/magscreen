@@ -175,7 +175,7 @@ def load():
 		data['cwd'] = Globals.cwd
 		data['rate'] = Globals.default_rate
 		sensors = []
-		data['sensors'] = json.dumps(sensors)
+		data['sensors'] = sensors
 		data['secondwindow'] = None
 	
 		if (sys.platform == 'win32'):
@@ -228,7 +228,7 @@ def save():
 		sensor_serial = i.sensor_cb.get()
 		Globals.sensors.append(sensor_serial)
 		
-	data['sensors'] = json.dumps(Globals.sensors)
+	data['sensors'] = Globals.sensors
 	data['cwd'] = Globals.cwd
 	data['rate'] = Globals.rate.get()
 	data['secondwindow'] = None

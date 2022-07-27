@@ -93,11 +93,7 @@ def test_summary(sOutFile, dProps, lDatasets):
 	(rStray, rStrayErr) = calc.stray_field(1, rMoment, rMomErr)
 	
 	
-
-
-# ############################################################################ #
-
-def main():
+def parse_args():
 	"""Program entry point, see argparse setup below or run with -h for overall
 	scope and usage information.
 
@@ -106,7 +102,7 @@ def main():
 		the calling shell. 0 = success, non-zero = various error conditions
 	"""
 	global g_lCollectors, g_display, g_sigint
-	
+
 	psr = argparse.ArgumentParser(formatter_class=common.BreakFormatter)
 	psr.description = '''\
 		Use 2 to N twinleaf VMR sensors to calculate the dipole moment of 
@@ -115,19 +111,19 @@ def main():
 	Author: chris-piker@uiowa.edu, cole-dorman@uiowa.edu\v
 	Source: https://research-git.uiowa.edu/space-physics/utilities/python/vangse
 	'''
-	
+
 	# By tradition, optional command line parameters are first...
 	psr.add_argument(
 		'-f', '--freq', dest='sRate', metavar='HZ', type=int, default=10,
 		help='The number of data points to collect per sensor, per second.  '+\
-		     'Defaults to 10 Hz so that slow python code can keep up.\n'
+				'Defaults to 10 Hz so that slow python code can keep up.\n'
 	)
-	
+
 	psr.add_argument(
 		'-t', '--time', dest='sDuration', metavar='SEC', type=int, default=20,
-		  help='The total number of seconds to collect data, defaults to 20.\n'
+			help='The total number of seconds to collect data, defaults to 20.\n'
 	)
-	
+
 	sDef="9,11,15"
 	psr.add_argument(
 		"-r","--radius", dest='sRadii', metavar="CM,CM,...", type=str, 
@@ -146,7 +142,7 @@ def main():
 		"sensors read is based on the number of sensor distances provided in "+\
 		"the --radius argument.\n"
 	)
-	
+
 	psr.add_argument(
 		'-m', '--message', dest="sMsg", metavar='"Short msg"', type=str, default=None,
 		help="Add a one line message to be saved with the test data."
@@ -164,15 +160,16 @@ def main():
 		"are appended to this file.  May be given as an absolute path, parent "+\
 		"directories will be created as needed."
 	)
-	
+
 	# ... and positional parameters follow
 	psr.add_argument("PART", 
 		help="An identifier for the object to be measured.  Will be used as "+\
 		"part of the output filenames."
 	)
-	
-	opts = psr.parse_args()
 
+	return psr.parse_args()
+
+def operate(opts):
 	# Set user interup handlers in case user wants to quite early.
 	signal.signal(signal.SIGINT, setQuit)
 	signal.signal(signal.SIGTERM, setQuit)
@@ -276,6 +273,12 @@ def main():
 	
 	return 0  # An all-okay return value
 
+# ############################################################################ #
+
+def main():
+	opts = parse_args()
+	return operate(opts)
+	
 # Run the main function if this is a top level script
 if __name__ == "__main__":
 	sys.exit(main())

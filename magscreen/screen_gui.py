@@ -33,6 +33,7 @@ class Globals:
 	sensor_A = 'DT04H6OX'
 	sensor_B = 'DT04H6NY'
 	sensor_C = 'DT04H6OF'
+	sensors = []
 	no_sensor = 'N/A'
 	default_tech = 'Your name'
 	default_part = 'Enter part name'
@@ -84,8 +85,12 @@ class sensorFrame(ttk.Frame):
 		
 		''' Create and place sensor combobox. '''
 		self.serial = tk.StringVar()
+		# self.sensor_cb = ttk.Combobox(self, width=10, textvariable=self.serial, validate="focusout", validatecommand=self.check_cb)
 		self.sensor_cb = ttk.Combobox(self, width=10, textvariable=self.serial)
-		self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
+		if len(Globals.sensors) > 1:
+			self.sensor_cb["values"] = Globals.sensors
+		else:
+			self.sensor_cb["values"] = (Globals.sensor_A, Globals.sensor_B, Globals.sensor_C)
 		self.sensor_cb['state'] = 'disable'
 		self.sensor_cb.pack(side='left', fill='both', padx=30, pady=10)
 		
@@ -112,7 +117,12 @@ class sensorFrame(ttk.Frame):
 		Globals.active_so.append(radius)
 		create_set_up()
 		return True
-class topFrame(ttk.Frame):
+	'''
+	def check_cb(serial):
+		Globals.sensors.append(serial)
+		return True
+	'''
+class topFrame(ttk.Frame): 		# not being used right now
 	def __init__(self, container):
 		super().__init__(container)
 		
@@ -164,6 +174,8 @@ def load():
 		data['numSensors'] = Globals.default_num_sensors
 		data['cwd'] = Globals.cwd
 		data['rate'] = Globals.default_rate
+		sensors = []
+		data['sensors'] = json.dumps(sensors)
 		data['secondwindow'] = None
 	
 		if (sys.platform == 'win32'):
@@ -183,6 +195,9 @@ def load():
 	data = json.load(f)
 	
 	Globals.default_num_sensors = data['numSensors']
+	Globals.sensors = []
+	for i in data['sensors']:
+		Globals.sensors.append(i)
 	Globals.rate = data['rate']
 	Globals.cwd = data['cwd']
 	Globals.default_tech = data['technician']
@@ -208,6 +223,12 @@ def save():
 		data['numSensors'] = len(Globals.so)
 	else:
 		data['numSensors'] = Globals.default_num_sensors
+		
+	for i in Globals.so:
+		sensor_serial = i.sensor_cb.get()
+		Globals.sensors.append(sensor_serial)
+		
+	data['sensors'] = json.dumps(Globals.sensors)
 	data['cwd'] = Globals.cwd
 	data['rate'] = Globals.rate.get()
 	data['secondwindow'] = None

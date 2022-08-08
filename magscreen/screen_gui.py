@@ -18,6 +18,7 @@ import os
 from os.path import join as pjoin
 import json
 import sys
+from magscreen.screen import screen_entry
 
 
 ''' This class will represent the default values helping manage our global
@@ -44,6 +45,14 @@ class Globals:
 	system = None
 	part = None
 	
+	options = None
+	duration = None 
+	dur_var = None 
+	summary = None 
+	sum_var = None
+	msg = None 
+	msg_var = None
+	rate_var = None
 	
 	secondWindow = None
 	treeContainer = None
@@ -114,8 +123,11 @@ class sensorFrame(ttk.Frame):
 		self.pack(side='top', fill='x')
 		
 	def callback(radius):
-		Globals.active_so.append(radius)
-		create_set_up()
+		if radius.radius.get() < 0:
+			showerror(title='Error', message='Please enter a value greater than 0.')
+		else:
+			Globals.active_so.append(radius)
+			create_set_up()
 		return True
 	'''
 	def check_cb(serial):
@@ -489,6 +501,44 @@ def mainPage():
 						   
 	main_label.pack(pady=20, padx=20, fill='both', expand=True)
 	
+''' Function calls screen.py and passes in params.'''
+def runFunc():
+	# sDuration, sMsg, and sSummary all need to be set up. Using defaults currently
+	
+	if (Globals.msg == None) or (Globals.msg.get() == ''):
+		defaultMessage = 'This will be a one lined string to be saved with data.'
+	else:
+		defaultMessage = Globals.msg.get()
+		
+	if (Globals.summary == None) or (Globals.summary.get() == ''):
+		defaultSummary = "ScreenResults.csv"
+	else:
+		defaultSummary = Globals.summary.get()
+	
+	strRadii = ''
+	strSerials = ''
+	# get radii
+	count = 0
+	for sensor in Globals.so:
+		radii_entry = sensor.radii
+		sensor_serial = sensor.sensor_cb
+		if ('normal' in str(radii_entry['state'])):
+			radius = str(radii_entry.get())
+			serial = sensor_serial.get()
+			if count == 0:
+				strRadii = radius
+				strSerials = serial
+			else:
+				strRadii = strRadii + ',' + radius
+				strSerials = strSerials + ',' + serial
+		count += 1
+			
+	
+	params = {"sRate": int(Globals.rate.get()), "sDuration": 20, "sRadii": strRadii, "sUarts": strSerials, "sMsg": defaultMessage, "sSummary": defaultSummary, "PART": Globals.part.get()}
+	
+	print(params)
+	screen_entry(params)
+	return
 	
 ''' Function creates second window with all the options for a run. '''	
 def launch():
@@ -596,25 +646,26 @@ def launch():
 	# create_set_up()
    
 	''' Create widgets for bottom frame. This will be rate label and entry, 
-	   options button, and reset all button. '''
+	   options button, and reset all button. '''            
 	rate_label = ttk.Label(bottomFrame, text="Rate [Hz]:")
+	Globals.rate_var = tk.IntVar
 	Globals.rate = ttk.Entry(bottomFrame, width='10')
 	Globals.rate.insert(0, Globals.default_rate)
 	
-	options = ttk.Button(bottomFrame, text='Options', width=15)		# Need to create funtion and add command for Option button  
-	ready = ttk.Button(bottomFrame, text='Ready', width=15, command=create_set_up)
+	options = ttk.Button(bottomFrame, text='Options', width=40, command=optionsWindow)		# Need to create funtion and add command for Option button  
+	# ready = ttk.Button(bottomFrame, text='Ready', width=15, command=create_set_up)
    
 	''' Place widgets into bottom frame. '''
 	rate_label.pack(side='left', padx=25, pady=5)
 	Globals.rate.pack(side='left', padx=25, pady=5)
    
-	options.pack(side='left', fill='both', expand=True, padx=25, pady=5)
-	ready.pack(side='left', fill='both', expand=True, padx=25, pady=5)
+	options.pack(side='right', fill='both', padx=25, pady=5)
+	# ready.pack(side='left', fill='both', expand=True, padx=25, pady=5)
    
 	''' Create widgets for bottomFrame2. This will be progress bar, clear all button, and run button'''
 	clear_all = ttk.Button(bottomFrame2, text='Clear all', width=15)	# Need to create funtion and add command for Clear all button
    
-	run = ttk.Button(bottomFrame2, text='Run', width=15)		# Need to add command to run button
+	run = ttk.Button(bottomFrame2, text='Run', width=15, command=runFunc)		# Need to add command to run button
    
 	# Progress bar mode can be set to determinant once I know how to measure relative progress of the program.
 	# Could possibly set it so if it takes more than 22 seconds it displays bad run or error???
@@ -630,6 +681,61 @@ def launch():
 		
 	Globals.secondWindow.protocol("WM_DELETE_WINDOW", hide)
 	return
+
+def optionsWindow():
+	if (Globals.options != None):
+		Globals.options.deiconify()
+		return
+	Globals.options = Toplevel()
+	# Globals.options.grab_set()
+	Globals.options.title('Options')
+	Globals.options.geometry('330x150')
+	
+	# creating frame for options window
+	frameOne = Frame(Globals.options, width=280, height=50, padx=10, pady=5)
+	frameOne.pack(side='top', fill='x', expand=True)
+	
+	frameTwo = Frame(Globals.options, width=280, height=50, padx=10, pady=5)
+	frameTwo.pack(side='top', fill='x', expand=True)
+	
+	frameThree = Frame(Globals.options, width=280, height=50, padx=10, pady=5)
+	frameThree.pack(side='top', fill='x', expand=True)
+	
+	# creating widgets for options window
+	duration_label = ttk.Label(frameOne, text='Duration [s]:')
+	Globals.dur_var = tk.IntVar()
+	Globals.duration = ttk.Entry(frameOne, width='10', textvariable=Globals.dur_var)
+	Globals.duration.delete(0,'end')
+	Globals.duration.insert(0,20) 		# inserting default 20 second duration value 
+	
+	summary_label = ttk.Label(frameTwo, text='Summary:')
+	Globals.sum_var = tk.StringVar()
+	Globals.summary = ttk.Entry(frameTwo, width='35', textvariable=Globals.sum_var)
+	Globals.summary.insert(0, "ScreenResults.csv") 		# inserting default summary
+	
+	msg_label = ttk.Label(frameThree, text='Message:')
+	Globals.msg_var = tk.StringVar()
+	Globals.msg = ttk.Entry(frameThree, width='35', textvariable=Globals.msg_var)
+	
+	# placing widgets in opionts window frame
+	duration_label.pack(side='left', padx=5)
+	Globals.duration.pack(side='left', padx=10)
+	
+	summary_label.pack(side='left', padx=5)
+	Globals.summary.pack(side='left', padx=10)
+	
+	msg_label.pack(side='left', padx=5)
+	Globals.msg.pack(side='left', padx=15)
+	
+	Globals.options.protocol("WM_DELETE_WINDOW", hideOW)
+	
+	return 
+	
+
+def hideOW():
+	Globals.options.withdraw()
+	return
+	
 
 def hide():
 	Globals.secondWindow.withdraw()

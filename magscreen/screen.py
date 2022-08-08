@@ -278,6 +278,30 @@ def operate(opts):
 def main():
 	opts = parse_args()
 	return operate(opts)
+
+def screen_entry(params):
+	opts = parse_args()
+	# Do Work
+	opts.sOutDir = params["sOutDir"]
+	opts.sRate = params["sRate"]
+	opts.sDuration = params["sDuration"]
+	opts.sRadii = params["sRadii"]
+	opts.sUarts = params["sUarts"]
+	opts.sMsg = params["sMsg"]
+	opts.sSummary = params["sSummary"]
+	opts.PART = params["PART"]
+	
+	print(opts.sOutDir)
+	print(opts.sRate)
+	print(opts.sDuration)
+	print(opts.sRadii)
+	print(opts.sUarts)
+	print(opts.sMsg)
+	print(opts.sSummary)
+	print(opts.PART)
+	
+	# operate(opts)
+	return 
 	
 # Run the main function if this is a top level script
 if __name__ == "__main__":

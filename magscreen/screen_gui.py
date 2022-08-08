@@ -129,11 +129,7 @@ class sensorFrame(ttk.Frame):
 			Globals.active_so.append(radius)
 			create_set_up()
 		return True
-	'''
-	def check_cb(serial):
-		Globals.sensors.append(serial)
-		return True
-	'''
+
 class topFrame(ttk.Frame): 		# not being used right now
 	def __init__(self, container):
 		super().__init__(container)
@@ -682,6 +678,7 @@ def launch():
 	Globals.secondWindow.protocol("WM_DELETE_WINDOW", hide)
 	return
 
+''' Function creates options window which houses duration, summary and message options. '''
 def optionsWindow():
 	if (Globals.options != None):
 		Globals.options.deiconify()
@@ -731,12 +728,12 @@ def optionsWindow():
 	
 	return 
 	
-
+''' Function closes or hides Options window. '''
 def hideOW():
 	Globals.options.withdraw()
 	return
 	
-
+''' Function closes or hides run window. '''
 def hide():
 	Globals.secondWindow.withdraw()
 	return
@@ -820,7 +817,6 @@ def initializeGUI():
 	''' Place options entry and change button into tree container. '''
 	# Globals.optionsEntry.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
 	browseButton.pack(side='bottom', fill='x', expand=True, padx=10, pady=10)
-	
 	
 def GUI():
 	initializeGUI()

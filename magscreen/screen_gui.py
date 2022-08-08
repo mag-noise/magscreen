@@ -226,7 +226,8 @@ def save():
 		
 	for i in Globals.so:
 		sensor_serial = i.sensor_cb.get()
-		Globals.sensors.append(sensor_serial)
+		if sensor_serial not in Globals.sensors:
+			Globals.sensors.append(sensor_serial)
 		
 	data['sensors'] = Globals.sensors
 	data['cwd'] = Globals.cwd

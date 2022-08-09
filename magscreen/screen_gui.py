@@ -530,7 +530,7 @@ def runFunc():
 		count += 1
 			
 	
-	params = {"sRate": int(Globals.rate.get()), "sDuration": 20, "sRadii": strRadii, "sUarts": strSerials, "sMsg": defaultMessage, "sSummary": defaultSummary, "PART": Globals.part.get()}
+	params = {"sOutDir": Globals.cwd, "sRate": int(Globals.rate.get()), "sDuration": 20, "sRadii": strRadii, "sUarts": strSerials, "sMsg": defaultMessage, "sSummary": defaultSummary, "PART": Globals.part.get()}
 	
 	print(params)
 	screen_entry(params)

@@ -35,6 +35,8 @@ import magscreen.semcsv as semcsv
 import magscreen.plot as plot
 import magscreen.summary as summary
 
+from types import SimpleNamespace
+
 # The version of this software, need to be able to set this via the release
 # process somehow
 g_sVersion = "magscreen-0.3"
@@ -280,17 +282,8 @@ def main():
 	return operate(opts)
 
 def screen_entry(params):
-	opts = parse_args()
-	# Do Work
-	opts.sOutDir = params["sOutDir"]
-	opts.sRate = params["sRate"]
-	opts.sDuration = params["sDuration"]
-	opts.sRadii = params["sRadii"]
-	opts.sUarts = params["sUarts"]
-	opts.sMsg = params["sMsg"]
-	opts.sSummary = params["sSummary"]
-	opts.PART = params["PART"]
-	
+	opts = SimpleNamespace(**params)
+
 	print(opts.sOutDir)
 	print(opts.sRate)
 	print(opts.sDuration)
@@ -300,7 +293,7 @@ def screen_entry(params):
 	print(opts.sSummary)
 	print(opts.PART)
 	
-	# operate(opts)
+	operate(opts)
 	return 
 	
 # Run the main function if this is a top level script

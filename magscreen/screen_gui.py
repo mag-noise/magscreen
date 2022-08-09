@@ -122,11 +122,11 @@ class sensorFrame(ttk.Frame):
 		# show frame
 		self.pack(side='top', fill='x')
 		
-	def callback(radius):
-		if radius.radius.get() < 0:
+	def callback(sensor_frame):
+		if sensor_frame.radius.get() < 0:
 			showerror(title='Error', message='Please enter a value greater than 0.')
 		else:
-			Globals.active_so.append(radius)
+			Globals.active_so.append(sensor_frame)
 			create_set_up()
 		return True
 
@@ -297,9 +297,16 @@ def remove_sensor():
 		return
 	else:
 		last_sensor = Globals.so[-1]
+		
+		if last_sensor in Globals.active_so:
+			i = Globals.active_so.index(last_sensor)
+			del Globals.active_so[i]
+			
 		last_sensor.destroy()
 		Globals.so = Globals.so[:-1]
 		Globals.color_list = Globals.color_list[:-1]
+		
+		create_set_up()
 		return 
 	
 ''' Function to create image of the sensor set up from the software's perspective. '''
@@ -313,7 +320,7 @@ def create_set_up():
 	radii_list = []
 	clr = []
 	
-	for sensor in Globals.active_so:
+	for sensor in Globals.so:
 		radii_entry = sensor.radii
 		if ('normal' in str(radii_entry['state'])):
 			radii_list.append(radii_entry.get())
@@ -472,16 +479,42 @@ def updateCWD():
 	different things based on first run or not.'''
 def mainPage():
 	
-	''' Create two subcontainers within the midContainer. '''
-	# leftFrame = Frame(Globals.midContainer, width=240, height=225)
-	rightFrame = Frame(Globals.midContainer, width=280, height=225)
-	
-	''' Place the left and right frame withing the midContainer. '''
+#	''' Create two subcontainers within the midContainer. '''
+#	# leftFrame = Frame(Globals.midContainer, width=240, height=225)
+#	rightFrame = Frame(Globals.midContainer, width=280, height=225)
+#	
+#	''' Place the left and right frame withing the midContainer. '''
 	# leftFrame.pack(side='left', fill='both', expand=True)
-	rightFrame.pack(side='left', fill='both', expand=True)
+#	rightFrame.pack(side='left', fill='both', expand=True)
 	
 	''' Place image for now in left frame.'''
-	main_label = HTMLLabel(rightFrame, html="""
+#	main_label = HTMLLabel(rightFrame, html="""
+#		<p>Magnetic cleanliness screening is the process of determining the
+#		magnetic properties of various parts before they are added to 
+#		instrumentation that measures magnetic fields. The properties of interest
+#		are the stray field and dipole moment. Typically a full field 
+#		characterization is unnecessary. A simple pass/fail measurement of the 
+#		worst possible magnetic field distortion created by an object is typically good enough for
+#		instrument construction purposes. This software is intended for use with an apparatus that 
+#		rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly 
+#		sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR 
+#		sensors for thier simple serial interface, though it easily could be adapted for other equipment.</p>
+#				   <img src="mag_screen_apperatus.jpg">				
+#	""")
+						   
+#	main_label.pack(pady=20, padx=20, fill='both', expand=True)
+	
+	page = mp(Globals.midContainer)
+	return
+
+class homepage(ttk.Frame):
+	def __init__(self, container):
+		super().__init__(container)
+		
+		self.rightFrame = Frame(container, width=280, height=225)
+		self.rightFrame.pack(side='left', fill='both', expand=True)
+		
+		self.main_label = HTMLLabel(self.rightFrame, html="""
 		<p>Magnetic cleanliness screening is the process of determining the
 		magnetic properties of various parts before they are added to 
 		instrumentation that measures magnetic fields. The properties of interest
@@ -495,7 +528,20 @@ def mainPage():
 				   <img src="mag_screen_apperatus.jpg">				
 	""")
 						   
-	main_label.pack(pady=20, padx=20, fill='both', expand=True)
+		self.main_label.pack(pady=20, padx=20, fill='both', expand=True)
+
+''' Function hides original home page to display data after run has occured.'''
+def hide_hp():
+	page.rightFrame.pack_forget()
+	
+	return
+
+	
+''' Messing around with a rerun function. Will be called in the runFunc to prepare run window for new run. '''
+def rerun():
+	create_set_up()
+	hide_hp()
+	return
 	
 ''' Function calls screen.py and passes in params.'''
 def runFunc():
@@ -534,6 +580,8 @@ def runFunc():
 	
 	print(params)
 	screen_entry(params)
+	
+	rerun()
 	return
 	
 ''' Function creates second window with all the options for a run. '''	
@@ -822,6 +870,15 @@ def GUI():
 	initializeGUI()
 	load()
 	fileTree()
-	mainPage()
+	# mainPage()
+	page = mp(Globals.midContainer)
 	Globals.root.protocol("WM_DELETE_WINDOW", save)
 	Globals.root.mainloop()
+	
+initializeGUI()
+load()
+fileTree()
+# mainPage()
+page = homepage(Globals.midContainer)
+Globals.root.protocol("WM_DELETE_WINDOW", save)
+Globals.root.mainloop()

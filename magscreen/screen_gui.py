@@ -74,6 +74,8 @@ class Globals:
 	msg_var = None
 	rate_var = None
 	
+	progress_bar = None
+	
 	secondWindow = None
 	treeContainer = None
 	midContainer = None
@@ -152,7 +154,7 @@ class sensorFrame(ttk.Frame):
 
 class args:
 	def __init__(self, duration, radii, serials, message, summary, part):
-		self.sOutDir = Globals.cwd
+		self.sOutDir = Globals.cwd + '/{}'.format(part)
 		self.sRate = int(Globals.rate.get())
 		self.sDuration = duration
 		self.sRadii = radii
@@ -218,7 +220,6 @@ def load():
 	f.close()
 	
 	return
-	
 
 def save():
 	# dictionary for app data
@@ -259,12 +260,12 @@ def save():
 	Globals.root.destroy()
 	return 
 	
-	
 def setDone():
 	"""Function triggered by a timer alarm that is setup in main()"""
 	global g_lCollectors
 	for col in g_lCollectors:
 		col.stop()
+		col.close()
 	if g_display != None:
 		print('gui stop')
 		g_display.stop()
@@ -662,6 +663,8 @@ def runFunc():
 		except OSError as e:
 			# perr("ERROR: %s\n"%e)
 			showinfo(title="HINT", message='HINT:  Sensors can be ignored by requesting data at fewer distances.')
+			print(type(e))
+			showerror(title="Error", message='Error: {}'.format(e))
 			# perr('  Use -h for more info.\n')
 			return 15
 
@@ -688,6 +691,9 @@ def runFunc():
 	alarm.start()
 	g_display.start()
 	
+	#start progress bar
+	Globals.progress_bar.start()
+	
 	print('line 679')
 	# Wait on all my threads to exit
 	for collector in g_lCollectors:
@@ -699,6 +705,7 @@ def runFunc():
 	
 	print('line 686')
 	alarm.cancel() # Cancel the alarm if it hasn't gone off
+	Globals.progress_bar.stop() 		# stop progress bar
 	# perr('\n')
 	if g_bSigInt:
 		showwarning(title="Warning", message='WARN:  Data collection terminated, no output written\n')
@@ -720,7 +727,7 @@ def runFunc():
 		opts.sSummary = pjoin(opts.sOutDir, opts.sSummary)
 	
 	summary.append(opts.sSummary, dProps, lDatasets)
-	showinfo(title="Information", message="INFO:  Summary appended to %s\n"%opts.sSummary)
+	showinfo(title="Information", message="INFO:  Summary appended to {}".format(opts.sSummary))
 	
 	rerun()
 	return 0  # An all-okay return value
@@ -865,11 +872,11 @@ def launch():
    
 	# Progress bar mode can be set to determinant once I know how to measure relative progress of the program.
 	# Could possibly set it so if it takes more than 22 seconds it displays bad run or error???
-	progress_bar = ttk.Progressbar(bottomFrame2, orient='horizontal', length='300', mode='indeterminate')  
+	Globals.progress_bar = ttk.Progressbar(bottomFrame2, orient='horizontal', length='300', mode='indeterminate')  
    
 	''' Place widgets in bottomFrame2. '''
    
-	progress_bar.pack(side='left', padx=25, pady=5)
+	Globals.progress_bar.pack(side='left', padx=25, pady=5)
    
 	quitButton.pack(side='left', fill='x', padx=25, pady=5)
    

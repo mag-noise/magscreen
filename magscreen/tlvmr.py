@@ -175,6 +175,7 @@ class VMR(threading.Thread):
 		"""Close the comm port for this sensor.  Do this before creating an 
 		new connection to the same sensor at a different sampling rate.
 		"""
+		self.device._close()
 	
 	def run(self):
 		self.raw_data = []

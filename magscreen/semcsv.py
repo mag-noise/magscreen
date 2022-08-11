@@ -247,8 +247,9 @@ def read(sFile):
 
 	with open(sFile, 'r', newline='') as fIn:
 		rdr = csv.reader(fIn)
+		nLine = 0
 		for row in rdr:
-
+			nLine += 1
 			#perr("Reading %s\n"%str(row))
 
 			# Already three level deep, haven't even written anything :(
@@ -286,7 +287,7 @@ def read(sFile):
 						i += 1
 			
 				elif (row[0] in ('P','H','D')) and (len(lDs) == 0): # PhD, totally not planned
-					lDs = [ _new_ds(0,1024)  ]
+					lDs = [ _new_ds(sFile,nLine,0,1024)  ]
 					_parse_ds_cols(lDs, row)
 
 				elif row[0] == 'C':

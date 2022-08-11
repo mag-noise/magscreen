@@ -18,7 +18,27 @@ import os
 from os.path import join as pjoin
 import json
 import sys
-from magscreen.screen import screen_entry
+import argparse    
+import signal
+import threading     # Mostly waiting on I/O so simple threads are okay
+import time          # if the data rate needs to go up significantly we
+import datetime      # will need to rewrite using the multiprocess module.
+import getpass       # Username
+import platform      # Hostname
+import magscreen.common as common # Local modules
+import magscreen.tlvmr as tlvmr
+import magscreen.semcsv as semcsv
+import magscreen.plot as plot
+import magscreen.summary as summary
+
+import matplotlib.pyplot as plt 
+
+g_sVersion = "magscreen-0.3"
+
+# Global variable and signal handler to halt main data collection loop
+g_lCollectors = []
+g_display = None
+g_bSigInt = False
 
 
 ''' This class will represent the default values helping manage our global
@@ -130,35 +150,16 @@ class sensorFrame(ttk.Frame):
 			create_set_up()
 		return True
 
-class topFrame(ttk.Frame): 		# not being used right now
-	def __init__(self, container):
-		super().__init__(container)
-		
-		''' Create the widgets for top frame. These include technician label and entry,
-		part label and entry, and system label and entry. '''
-		self.tech_label = ttk.Label(self, text="Technician:", font=("Calibri", 12))
-		self.tech = ttk.Entry(self, textvariable=Globals.default_tech)
-		self.tech.insert(0, Globals.default_tech)
-   
-		self.part_label = ttk.Label(self, text="Part:", font=('Calibri', 12))
-		self.part = ttk.Entry(self)
-		self.part.insert(0, Globals.default_part)
-   
-		self.system_label = ttk.Label(self, text="System:", font=("Calibri", 12))
-		self.system = ttk.Entry(self)
-		self.system.insert(0, Globals.default_system)
-   
-		''' Placing the widgets in the top frame. '''
-		self.tech_label.pack(fill='x', side='left')
-		self.tech.pack(fill='x', side='left', padx=10)
-	
-		self.system_label.pack(fill='x', side='left', padx=10)
-		self.system.pack(fill='x', side='left', padx=5)
-   
-		self.part_label.pack(fill='x', side='left', padx=10)
-		self.part.pack(fill='x', side='left', padx=5)
-		
-		self.grid(row=0, sticky='nsew')
+class args:
+	def __init__(self, duration, radii, serials, message, summary, part):
+		self.sOutDir = Globals.cwd
+		self.sRate = int(Globals.rate.get())
+		self.sDuration = duration
+		self.sRadii = radii
+		self.sUarts = serials
+		self.sMsg = message
+		self.sSummary = summary
+		self.PART = part
 			
 def load():
 	# open and load app data
@@ -259,6 +260,36 @@ def save():
 	return 
 	
 	
+def setDone():
+	"""Function triggered by a timer alarm that is setup in main()"""
+	global g_lCollectors
+	for col in g_lCollectors:
+		col.stop()
+	if g_display != None:
+		print('gui stop')
+		g_display.stop()
+	print('setDone is workin')
+
+def setQuit():
+	"""Signal handler for CTRL+C from the keyboard"""
+	global g_bSigInt
+	g_bSigInt = True      # Indicates early exit
+	print('setQuit is workin')
+	setDone()
+	
+def _test_properties(sPart, sComments=None):
+	"""Return a dictionary of basic properties for a screening test"""
+	d = {
+		'Part':sPart,
+		'Timestamp': time.strftime('%Y-%m-%dT%H:%M:%S%z'), # Use ISO 8601 local times
+		'User': getpass.getuser(),
+		'Host': platform.node().lower(),
+		'Version':g_sVersion
+	}
+
+	if sComments: d['Note'] = sComments.replace('"',"'")
+	return d		
+
 ''' Function changes current working directory. Calls function to remake tree.'''	
 def select_directory():
 	Globals.cwd = fd.askdirectory()
@@ -561,10 +592,12 @@ def runFunc():
 	strSerials = ''
 	# get radii
 	count = 0
+	nSensors = 0
 	for sensor in Globals.so:
 		radii_entry = sensor.radii
 		sensor_serial = sensor.sensor_cb
 		if ('normal' in str(radii_entry['state'])):
+			nSensors += 1 								# See how many sensors we're going to use
 			radius = str(radii_entry.get())
 			serial = sensor_serial.get()
 			if count == 0:
@@ -575,17 +608,136 @@ def runFunc():
 				strSerials = strSerials + ',' + serial
 		count += 1
 			
+	# int(Globals.duration.get())	
+	opts = args(10, strRadii, strSerials, defaultMessage, defaultSummary, Globals.part.get())
 	
-	params = {"sOutDir": Globals.cwd, "sRate": int(Globals.rate.get()), "sDuration": 20, "sRadii": strRadii, "sUarts": strSerials, "sMsg": defaultMessage, "sSummary": defaultSummary, "PART": Globals.part.get()}
+	duration = int(Globals.duration.get())
+	print(duration)
+	print('why is this running')
+	sRate = int(Globals.rate.get())
+	print(sRate)   
+	print(type(sRate))
 	
-	print(params)
-	screen_entry(params)
+	# Since SIGALRM isn't available on Windows, spawn a thread to countdown to
+	# the end of the data collection period, check user supplied time
+	if duration < 1 or duration > 60*60:
+		showerror(title="Error", message="ERROR: Test sDuration must be between 1 second and 1 hour\n")
+		return 7
+	
+	# Set at X samples per second per sensor, should be no more then
+	# 10 samples per second so that slow python code can keep up
+	if (int(Globals.rate.get()) < 1) or (int(Globals.rate.get()) >= 200):
+		showerror(title="Error", message="ERROR: Requested sample rate %d is out of expected range 1 to 200 (Hz)."%int(Globals.rate.get()))
+		return 8
+	
+	# Check how many sensors we're going to use
+	lDist = [int(s.strip(),10) for s in opts.sRadii.split(',')]
+	if nSensors < 1:
+		showerror(title="Error", message="ERROR: At least one measurement distance must be given via -r\n")
+		return 9
+	
+	lSerial = [s.strip() for s in opts.sUarts.split(',')]
+	if len(lSerial) < nSensors:
+		showerror(title="Error", message="ERROR: %d UARTs are required for measurements at %d distances.\n"%(
+			nSensors, nSensors
+		))
+		return 10
+	
+	rTime0 = time.time()  # Current unix time in floating point seconds	
+	g_bSigInt = False    # Global interrupt flag
+	
+	print('line 640')
+	# Check that our non-empty sensors can be distinguished from each other
+	g_lCollectors = []
+	for i in range(nSensors):
+		lTest = []
+		for j in range(nSensors): 
+			if (j != i): lTest.append(lSerial[j])
+		if lSerial[i] in lTest:
+			showerror(title="Error", message="ERROR: UART serial number %s is not unique in %s!\n"%(lSerial[i], opts.sUarts))
+			return 13
+
+		try:
+			g_lCollectors.append(tlvmr.VMR('%d'%i, lSerial[i], sRate))
+		except OSError as e:
+			# perr("ERROR: %s\n"%e)
+			showinfo(title="HINT", message='HINT:  Sensors can be ignored by requesting data at fewer distances.')
+			# perr('  Use -h for more info.\n')
+			return 15
+
+		g_lCollectors[-1].set_time0(rTime0)
+		g_lCollectors[-1].set_dist(lDist[i])
+
+	if len(g_lCollectors) == 0:
+		showinfo(title="Information", message='INFO:  No data collection ports specified, successfully did nothing.\n')
+		return 0
+	
+	# Create a display output thread
+	showinfo(title="Information", message="Use the 'Quit' button to quit early")
+	
+	global g_display
+	g_display = common.Display("MSG:   Collecting ~%d seconds of data "%duration)
+	
+	# create an alarm thread to stop taking data
+	alarm = threading.Timer(duration + (time.time() - rTime0), setDone)
+	print('line 671')
+	print(g_lCollectors)
+	# Start all the threads
+	for collector in g_lCollectors:
+		collector.start()
+	alarm.start()
+	g_display.start()
+	
+	print('line 679')
+	# Wait on all my threads to exit
+	for collector in g_lCollectors:
+		print('this loop is goin')
+		if collector:
+			collector.join()
+	print('we made it')
+	g_display.join()
+	
+	print('line 686')
+	alarm.cancel() # Cancel the alarm if it hasn't gone off
+	# perr('\n')
+	if g_bSigInt:
+		showwarning(title="Warning", message='WARN:  Data collection terminated, no output written\n')
+		return 4  # An error return value
+	
+	# Save raw-data from collectors
+	sFile = pjoin(opts.sOutDir, "%s.csv"%(common.safe_filename(opts.PART)+str(time.strftime('%Y_%m_%dT%H_%M_%S'))))
+	sTitle = "Magnetic Screening Test, Raw Data"
+	tlvmr.write_mag_vecs(
+		sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.sMsg)
+	)
+
+	# Plot time series and PSD of the raw data, as a cross check
+	(dProps, lDatasets) = semcsv.read(sFile)
+	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
+	
+	# Open the roll-up info file (or create one if it doesn't exist)
+	if os.sep not in opts.sSummary:
+		opts.sSummary = pjoin(opts.sOutDir, opts.sSummary)
+	
+	summary.append(opts.sSummary, dProps, lDatasets)
+	showinfo(title="Information", message="INFO:  Summary appended to %s\n"%opts.sSummary)
 	
 	rerun()
+	return 0  # An all-okay return value
+	
+
+def runbut():
+	threading.Thread(target=runFunc).start()
 	return
 	
 ''' Function creates second window with all the options for a run. '''	
 def launch():
+	if (Globals.options != None):
+		Globals.options.deiconify()
+	else:
+		optionsWindow()
+		Globals.options.withdraw()
+	
 	if (Globals.secondWindow != None):
 		Globals.secondWindow.deiconify()
 		return
@@ -707,9 +859,9 @@ def launch():
 	# ready.pack(side='left', fill='both', expand=True, padx=25, pady=5)
    
 	''' Create widgets for bottomFrame2. This will be progress bar, clear all button, and run button'''
-	clear_all = ttk.Button(bottomFrame2, text='Clear all', width=15)	# Need to create funtion and add command for Clear all button
+	quitButton = ttk.Button(bottomFrame2, text='Quit', width=15, command=setQuit)	# Need to create funtion and add command for Clear all button
    
-	run = ttk.Button(bottomFrame2, text='Run', width=15, command=runFunc)		# Need to add command to run button
+	run = ttk.Button(bottomFrame2, text='Run', width=15, command=runbut)		# Need to add command to run button
    
 	# Progress bar mode can be set to determinant once I know how to measure relative progress of the program.
 	# Could possibly set it so if it takes more than 22 seconds it displays bad run or error???
@@ -719,7 +871,7 @@ def launch():
    
 	progress_bar.pack(side='left', padx=25, pady=5)
    
-	clear_all.pack(side='left', fill='x', padx=25, pady=5)
+	quitButton.pack(side='left', fill='x', padx=25, pady=5)
    
 	run.pack(side='left', fill='x', padx=25, pady=5)
 		

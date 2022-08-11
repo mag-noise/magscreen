@@ -35,7 +35,6 @@ import magscreen.semcsv as semcsv
 import magscreen.plot as plot
 import magscreen.summary as summary
 
-from types import SimpleNamespace
 
 # The version of this software, need to be able to set this via the release
 # process somehow
@@ -95,7 +94,7 @@ def test_summary(sOutFile, dProps, lDatasets):
 	(rStray, rStrayErr) = calc.stray_field(1, rMoment, rMomErr)
 	
 	
-def parse_args():
+def main():
 	"""Program entry point, see argparse setup below or run with -h for overall
 	scope and usage information.
 
@@ -169,9 +168,9 @@ def parse_args():
 		"part of the output filenames."
 	)
 
-	return psr.parse_args()
+	# return psr.parse_args()
 
-def operate(opts):
+	opts = psr.parse_args()
 	# Set user interup handlers in case user wants to quite early.
 	signal.signal(signal.SIGINT, setQuit)
 	signal.signal(signal.SIGTERM, setQuit)
@@ -237,6 +236,7 @@ def operate(opts):
 	# create an alarm thread to stop taking data
 	alarm = threading.Timer(opts.sDuration + (time.time() - rTime0), setDone)
 	
+
 	# Start all the threads
 	for collector in g_lCollectors:
 		collector.start()
@@ -277,24 +277,6 @@ def operate(opts):
 
 # ############################################################################ #
 
-def main():
-	opts = parse_args()
-	return operate(opts)
-
-def screen_entry(params):
-	opts = SimpleNamespace(**params)
-
-	print(opts.sOutDir)
-	print(opts.sRate)
-	print(opts.sDuration)
-	print(opts.sRadii)
-	print(opts.sUarts)
-	print(opts.sMsg)
-	print(opts.sSummary)
-	print(opts.PART)
-	
-	operate(opts)
-	return 
 	
 # Run the main function if this is a top level script
 if __name__ == "__main__":

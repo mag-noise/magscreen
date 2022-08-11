@@ -174,3 +174,4 @@ dist
 .spyproject
 */.spyproject
 
+.vscode/launch.json

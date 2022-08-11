@@ -59,6 +59,7 @@ class Display(threading.Thread):
 		self.go = False
 
 	def stop(self):
+		print('common')
 		self.go = False
 	
 	def run(self):

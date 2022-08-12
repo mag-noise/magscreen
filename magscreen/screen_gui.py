@@ -25,6 +25,7 @@ import time          # if the data rate needs to go up significantly we
 import datetime      # will need to rewrite using the multiprocess module.
 import getpass       # Username
 import platform      # Hostname
+import glob
 import magscreen.common as common # Local modules
 import magscreen.tlvmr as tlvmr
 import magscreen.semcsv as semcsv
@@ -102,13 +103,7 @@ class Globals:
           'lime green', 'forest green', 'dark khaki', 'yellow', 'gold', 'goldenrod', 'saddle brown', 'salmon', 
 		  'orange', 'dark orange', 'coral', 'red', 'pink', 'maroon', 'violet red']
 	
-	
-class sensor:
-	def __init__(self, serial, radii, color, state=0):
-		self.serial = serial
-		self.radii = radii
-		self.color = color
-		self.state = state
+
 
 class sensorFrame(ttk.Frame):
 	def __init__(self, container):
@@ -186,8 +181,10 @@ class homepage(ttk.Frame):
 		return
 
 class args:
-	def __init__(self, duration, radii, serials, message, summary, part):
-		self.sOutDir = Globals.cwd + '/{}'.format(part)
+	def __init__(self, duration, radii, serials, message, summary, system, part):
+		gmt = time.gmtime(math.ceil(time.time()))
+		self.sOutDir = Globals.cwd + '{}{}'.format(os.sep, system) + '{}{}'.format(os.sep, part) + '{}{}-{}-{}T{}-{}-{}'.format(os.sep, gmt[0], gmt[1], gmt[2], gmt[3], gmt[4], gmt[5]) 
+		self.sOutDir = self.sOutDir.replace('/','\\')
 		self.sRate = int(Globals.rate.get())
 		self.sDuration = duration
 		self.sRadii = radii
@@ -551,6 +548,7 @@ def rerun():
 	
 ''' Function calls screen.py and passes in params.'''
 def runFunc():
+	global g_lCollectors
 	# sDuration, sMsg, and sSummary all need to be set up. Using defaults currently
 	
 	if (Globals.msg == None) or (Globals.msg.get() == ''):
@@ -584,7 +582,7 @@ def runFunc():
 		count += 1
 			
 	# int(Globals.duration.get())	
-	opts = args(10, strRadii, strSerials, defaultMessage, defaultSummary, Globals.part.get())
+	opts = args(10, strRadii, strSerials, defaultMessage, defaultSummary, Globals.system.get(), Globals.part.get())
 	
 	duration = int(Globals.duration.get())
 	print(duration)
@@ -686,16 +684,24 @@ def runFunc():
 		return 4  # An error return value
 	
 	# Save raw-data from collectors
-	sFile = pjoin(opts.sOutDir, "%s.csv"%(common.safe_filename(opts.PART)+str(time.strftime('%Y_%m_%dT%H_%M_%S'))))
+	#sFile = pjoin(opts.sOutDir, "%s.csv"%(common.safe_filename(opts.PART)+str(time.strftime('%Y_%m_%dT%H_%M_%S'))))
+	
+	print(opts.sOutDir)
+	sFile = pjoin(opts.sOutDir, "{}.csv".format('timeseries'))
 	sTitle = "Magnetic Screening Test, Raw Data"
 	tlvmr.write_mag_vecs(
 		sFile, g_lCollectors, sTitle, _test_properties(opts.PART, opts.sMsg)
 	)
 
+	print('699')
 	# Plot time series and PSD of the raw data, as a cross check
 	(dProps, lDatasets) = semcsv.read(sFile)
-	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
-	plot.screen_plot_png(dProps, lDatasets, sFile.replace('.csv', '.png'))
+	subSum = pjoin(sFile, sFile.replace('timeseries.csv', 'summary_plot.pdf'))
+	subPng = pjoin(sFile, sFile.replace('timeseries.csv', 'summary_plot.png'))
+	print(subSum)
+	print(subPng)
+	plot.screen_plot_pdf(dProps, lDatasets, subSum)
+	plot.screen_plot_png(dProps, lDatasets, subPng)
 	
 	# Open the roll-up info file (or create one if it doesn't exist)
 	if os.sep not in opts.sSummary:
@@ -704,9 +710,31 @@ def runFunc():
 	summary.append(opts.sSummary, dProps, lDatasets)
 	showinfo(title="Information", message="INFO:  Summary appended to {}".format(opts.sSummary))
 	
-	imageOne = HTMLLabel(page.leftFrame, html="""<img src='{}.p1.png'.format(opts.sOutDir)>""")
-	imageTwo = HTMLLabel(page.leftFrame, html="""<img src='{}.p2.png'.format(opts.sOutDir)>""")
+	stemp = ("%s%s*p1.png"%(opts.sOutDir, os.sep)).replace('/','\\')
+	stemp2 = ("%s%s*p2.png"%(opts.sOutDir, os.sep)).replace('/','\\')
+	print(stemp)
+	print(stemp2)
 	
+	lFiles = glob.glob(stemp) 
+	lFiles += glob.glob(stemp2)
+	dRep={'file1':lFiles[0], 'file2':lFiles[1]}
+	
+	sDoc = """
+	<html>
+	<body>
+	<pre>
+	file://%(file1)s
+	</pre>
+	<img src="%(file1)s" >
+	
+	<img src="%(file2)s" >
+	
+	</body>
+	</html>
+	"""%dRep
+	imageOne = HTMLLabel(page.leftFrame, html=sDoc)
+	#imageTwo = HTMLLabel(page.leftFrame, html="""<img src='{}.p2.png'.format(opts.sOutDir)>""")
+	imageOne.pack(fill='both', expand=True)
 	rerun()
 	return 0  # An all-okay return value
 	

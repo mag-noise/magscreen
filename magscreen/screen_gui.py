@@ -152,6 +152,39 @@ class sensorFrame(ttk.Frame):
 			create_set_up()
 		return True
 
+class homepage(ttk.Frame):
+	def __init__(self, container):
+		super().__init__(container)
+		
+		self.leftFrame = Frame(container, width=280, height=225, bg='red')
+		self.leftFrame.pack(side='left', fill='both', expand=True)
+		self.leftFrame.pack_forget()
+		
+		
+		self.rightFrame = Frame(container, width=280, height=225)
+		self.rightFrame.pack(side='left', fill='both', expand=True)
+		
+		self.main_label = HTMLLabel(self.rightFrame, html="""
+		<p>Magnetic cleanliness screening is the process of determining the
+		magnetic properties of various parts before they are added to 
+		instrumentation that measures magnetic fields. The properties of interest
+		are the stray field and dipole moment. Typically a full field 
+		characterization is unnecessary. A simple pass/fail measurement of the 
+		worst possible magnetic field distortion created by an object is typically good enough for
+		instrument construction purposes. This software is intended for use with an apparatus that 
+		rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly 
+		sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR 
+		sensors for thier simple serial interface, though it easily could be adapted for other equipment.</p>
+ 				   <img src="mag_screen_apperatus.jpg">				
+ 	""")
+ 						   
+		self.main_label.pack(pady=20, padx=20, fill='both', expand=True)
+
+	def hide_right(self, frame):
+		frame.pack_forget()
+		self.leftFrame.pack(side='left', fill='both', expand=True)
+		return
+
 class args:
 	def __init__(self, duration, radii, serials, message, summary, part):
 		self.sOutDir = Globals.cwd + '/{}'.format(part)
@@ -507,72 +540,13 @@ def updateCWD():
 	fileTree()
 	return 
 
-''' Function to initialize the main window. Can update later to show 
-	different things based on first run or not.'''
-def mainPage():
-	
-#	''' Create two subcontainers within the midContainer. '''
-#	# leftFrame = Frame(Globals.midContainer, width=240, height=225)
-#	rightFrame = Frame(Globals.midContainer, width=280, height=225)
-#	
-#	''' Place the left and right frame withing the midContainer. '''
-	# leftFrame.pack(side='left', fill='both', expand=True)
-#	rightFrame.pack(side='left', fill='both', expand=True)
-	
-	''' Place image for now in left frame.'''
-#	main_label = HTMLLabel(rightFrame, html="""
-#		<p>Magnetic cleanliness screening is the process of determining the
-#		magnetic properties of various parts before they are added to 
-#		instrumentation that measures magnetic fields. The properties of interest
-#		are the stray field and dipole moment. Typically a full field 
-#		characterization is unnecessary. A simple pass/fail measurement of the 
-#		worst possible magnetic field distortion created by an object is typically good enough for
-#		instrument construction purposes. This software is intended for use with an apparatus that 
-#		rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly 
-#		sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR 
-#		sensors for thier simple serial interface, though it easily could be adapted for other equipment.</p>
-#				   <img src="mag_screen_apperatus.jpg">				
-#	""")
-						   
-#	main_label.pack(pady=20, padx=20, fill='both', expand=True)
-	
-	page = mp(Globals.midContainer)
-	return
-
-class homepage(ttk.Frame):
-	def __init__(self, container):
-		super().__init__(container)
-		
-		self.rightFrame = Frame(container, width=280, height=225)
-		self.rightFrame.pack(side='left', fill='both', expand=True)
-		
-		self.main_label = HTMLLabel(self.rightFrame, html="""
-		<p>Magnetic cleanliness screening is the process of determining the
-		magnetic properties of various parts before they are added to 
-		instrumentation that measures magnetic fields. The properties of interest
-		are the stray field and dipole moment. Typically a full field 
-		characterization is unnecessary. A simple pass/fail measurement of the 
-		worst possible magnetic field distortion created by an object is typically good enough for
-		instrument construction purposes. This software is intended for use with an apparatus that 
-		rotates the part to be screened at a constant rate while the 3-axis magnetic field is regularly 
-		sampled at 2-N locations in space near the part. Magscreen was written using the TwinLeaf VMR 
-		sensors for thier simple serial interface, though it easily could be adapted for other equipment.</p>
-				   <img src="mag_screen_apperatus.jpg">				
-	""")
-						   
-		self.main_label.pack(pady=20, padx=20, fill='both', expand=True)
-
-''' Function hides original home page to display data after run has occured.'''
-def hide_hp():
-	page.rightFrame.pack_forget()
-	
-	return
-
 	
 ''' Messing around with a rerun function. Will be called in the runFunc to prepare run window for new run. '''
 def rerun():
 	create_set_up()
-	hide_hp()
+	print(page.rightFrame)
+	page.hide_right(page.rightFrame)
+	
 	return
 	
 ''' Function calls screen.py and passes in params.'''
@@ -721,6 +695,7 @@ def runFunc():
 	# Plot time series and PSD of the raw data, as a cross check
 	(dProps, lDatasets) = semcsv.read(sFile)
 	plot.screen_plot_pdf(dProps, lDatasets, sFile.replace('.csv','.pdf'))
+	plot.screen_plot_png(dProps, lDatasets, sFile.replace('.csv', '.png'))
 	
 	# Open the roll-up info file (or create one if it doesn't exist)
 	if os.sep not in opts.sSummary:
@@ -728,6 +703,9 @@ def runFunc():
 	
 	summary.append(opts.sSummary, dProps, lDatasets)
 	showinfo(title="Information", message="INFO:  Summary appended to {}".format(opts.sSummary))
+	
+	imageOne = HTMLLabel(page.leftFrame, html="""<img src='{}.p1.png'.format(opts.sOutDir)>""")
+	imageTwo = HTMLLabel(page.leftFrame, html="""<img src='{}.p2.png'.format(opts.sOutDir)>""")
 	
 	rerun()
 	return 0  # An all-okay return value

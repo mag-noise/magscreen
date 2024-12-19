@@ -4,17 +4,37 @@
 
 Magnetic cleanliness screening is the process of determining the magnetic
 properties of various parts before they are added to instrumentation that
-measures magnetic fields.  The properties of interest are the stray field
-and dipole moment.  Typically a full field characterization is unnecessary.
+measures magnetic fields.  The properties of interest are an object's dipole 
+moment and the stray field, a magnetic field an object generates that interferes 
+with other magnetic sensors on a spacecraft.  The stray field of an object is
+determined not just by the magnitude of an object's dipole moment, but it's 
+orientation relative to regions of interest.  To adequetly assume an object will 
+not interfere with other magnetic sensors, its stray field must be under a certain 
+threshold.  This assumes the magnitude of a magnetic dipole moment is under a
+certain threshold, in the dipole's most aggressive orientation.
+
+Typically a full field characterization is unnecessary.
 A simple pass/fail measurement of the worst possible magnetic field distortion
 created by an object is typically good enough for instrument construction
-purposes.  This software is intended for use with an apparatus that rotates
+purposes.  This software characterizes whether objects have suitably low
+stray magnetic fields at a certain distance by calculating the magnitude of 
+magnetic dipole moment in an object, and measuring the stray field the object
+would generate when the dipole moment is in its most aggressive orientation.
+
+This software is intended for use with an apparatus that rotates
 the part to be screened at a constant rate while the 3-axis magnetic field
 is regularly sampled at 2-N locations in space near the part.  *Magscreen* 
 was written using the [TwinLeaf VMR](https://github.com/twinleaf/tio-python) 
 sensors for thier simple serial interface, though it easily could be adapted
 for other equipment.
 
+For further explanation and analysis, the authors refer you to:
+Dorman, C. J., Piker, C., & Miles, D. M. (2024). 
+Automated static magnetic cleanliness screening for the TRACERS small-satellite mission. 
+Geoscientific Instrumentation, Methods and Data Systems, 13(1), 43-50.
+
+Or contact:
+david-miles@uiowa.edu
 
 ## Screening Apparatus
 
@@ -81,6 +101,38 @@ mag_screen -r 10,15 -u DT04H6OF,DT04H6OX "PartName" # Example: only two sensors
 5. Turn off the compressed air flow.
 
 6. Remove the object from the plate
+ 
+
+## Calculations
+
+The data will be collected by three Twinleaf VMR magnetometers positioned at three 
+different distances from the object using the 'mag_screen' program. The object being 
+screened has an unknown dipole moment. As the object rotates, its internal magnetic 
+field periodically aligns at maximum and minimum positions relative to each sensor. 
+Over several rotations, the magnetometers record sinusoidal Bx, By, and Bz components 
+of the magnetic field. Using Welch's method, these sinusoidal field components are 
+converted into a power spectral density. Taking the square root of the spectral density 
+provides the scalar Bx, By, and Bz values of the magnetic field.
+
+The Bx, By, and Bz magnitudes from each sensor are then used to determine the orientation 
+of the total magnetic field and, subsequently, the object's dipole moment relative to 
+the z-axes of the Twinleaf VMR sensors. With the dipole moment's orientation and the total 
+magnetic field magnitude measured at various distances, each sensor calculates the object's 
+dipole moment magnitude. The strongest possible magnetic field strength at each VMR's 
+distance from the rotating plate's origin is derived from the dipole moment magnitude. 
+These values are fitted to a function that decreases proportionally to the inverse cube 
+of the distance. From this fit, a best-fit dipole moment for the object is calculated.
+
+The program outputs:
+1. The best-fit dipole moment derived from the object's data.
+2. An indication of whether the object "passes" (if its dipole moment is < 0.05 [A m^-2]),
+   "fails" (if the dipole moment is > 0.05 [A m^-2]), or receives a "caution" 
+   (if the dipole moment is 0.0475 < m < 0.05 [A m^-2]).
+3. The stray magnetic field in nanotesla measured 1 meter away.
+
+Passing values correspond to an object producing a magnetic field magnitude of less than 
+100 nT when measured 1 meter away in its most aggressive dipole orientation.
+
 
 ## Output Archiving and Utility Programs
 
@@ -100,33 +152,4 @@ mag_screen_plot  # Reads raw *.csv data and generates single test summary plots
 mag_screen_sum   # Reads raw *.csv data and updates a running summary of part test data.
 ```
 
-After data are collected, files should be moved to a long term storage location.  
-
-## Calculations
-
-The data will be collected by three Twinleaf VMR magnetometers at three different
-distances away using the mag_screen program. The object being screened has an
-arbitrary dipole moment.  As the object is rotated it's internal field will 
-periodically be positioned at a maxima and minima from each sensor.  Over the course
-of a few rotations the magnetometers will measure the sinusoidal x, y, z functions
-of the magnetic field B from the object. Using Welch's method, we will collapse the
-sinusoidal field components into a power spectral density, which when taken the
-square root of, will give us x, y, z scalar values of the magnetic field B.
-
-The Bx, By, Bz data from each sensor (now 9 total points) is then put into a Python 3
-function to project a dipole moment and stray field.  Using the law of cosines, we can
-find the angle of the magnetic field and subsequently dipole moment relative to the
-z-axis. Knowing this angle, we can project these values into their most aggressive
-orientation (directly parallel with the z-axis), giving us 6 total data points. Each
-magnetometer projects an aggressive dipole moment and an aggressive magnetic field for
-its respective distance. These data points are then plot and best-fit to a function 
-`1/distance^3`. The best fit taken is the new dipole moment with error being calculated
-using the SciPy library curve_fit function. Using the calculated best-fit aggressive
-dipole, we calculate the stray field away at one meters. The function finds 3 things:
-
-	1. the best fit dipole moment from the object's data, 
-	2. the stray field in nanoTesla 1 meter away, and,
-	3. an indication the object has passed the test.
-
-If its dipole moment is <.05, fail if the dipole moment is >.05, and a caution if the
-dipole moment is .0475 < m < .05.
+After data are collected, files should be moved to a long term storage location. 
